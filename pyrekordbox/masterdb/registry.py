@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-08-07
 
@@ -177,7 +176,7 @@ class RekordboxAgentRegistry:
         -------
         value : str
         """
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id=key)
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key)
         return reg.str_1
 
     def get_text(self, key: str) -> str:
@@ -192,7 +191,7 @@ class RekordboxAgentRegistry:
         -------
         value : str
         """
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id=key)
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key)
         return reg.text_1
 
     def get_int(self, key: str) -> int:
@@ -207,7 +206,7 @@ class RekordboxAgentRegistry:
         -------
         value : int
         """
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id=key)
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key)
         return reg.int_1
 
     def get_date(self, key: str) -> datetime:
@@ -222,7 +221,7 @@ class RekordboxAgentRegistry:
         -------
         value : datetime.datetime
         """
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id=key)
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key)
         return reg.date_1
 
     def set_string(self, key: str, value: str) -> None:
@@ -275,7 +274,7 @@ class RekordboxAgentRegistry:
 
     def get_local_update_count(self) -> int:
         """Returns the current global local USN (unique sequence number)."""
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id="localUpdateCount")
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id="localUpdateCount")
         return reg.int_1
 
     def set_local_update_count(self, value: int) -> None:
@@ -286,7 +285,7 @@ class RekordboxAgentRegistry:
         value : int
             The new USN value.
         """
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id="localUpdateCount")
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id="localUpdateCount")
         reg.int_1 = value
 
     def increment_local_update_count(self, num: int = 1) -> int:
@@ -304,7 +303,7 @@ class RekordboxAgentRegistry:
         """
         if not isinstance(num, int) or num < 1:
             raise ValueError("The USN can only be increment by a positive integer!")
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id="localUpdateCount")
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id="localUpdateCount")
         reg.int_1 = reg.int_1 + num
         return reg.int_1
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-08-15
 
@@ -44,7 +43,7 @@ def clone_sqlcipher_amalgamation() -> Path:
 def patch_pysqlcipher_setup(pysqlcipher_dir, cryptolib="libcrypto.lib"):
     path = Path(pysqlcipher_dir, "setup.py")
 
-    with open(path, "r") as fh:
+    with open(path) as fh:
         text = fh.read()
 
     if cryptolib:

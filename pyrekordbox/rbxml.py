@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2022-04-10
 
@@ -7,7 +6,7 @@ r"""Rekordbox XML database file handler."""
 import logging
 import os.path
 import urllib.parse
-import xml.etree.cElementTree as xml
+import xml.etree.ElementTree as xml
 from abc import abstractmethod
 from collections import abc
 from pathlib import Path

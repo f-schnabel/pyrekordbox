@@ -107,6 +107,7 @@ select = [
     "N", # pep8-naming
     "D", # pydocstyle
     "ANN", # types-annotations
+    "U", # pyupgrade
 ]
 ignore = [
     "E203",  # Whitespace before ':'
@@ -129,8 +130,8 @@ ignore = [
     "ANN001", # Missing type annotation for obj in method
     "ANN002", # Missing type annotation for args in method
     "ANN003", # Missing type annotation for kwargs in method
-    "ANN101", # Missing type annotation for self in method
-    "ANN102", # Missing type annotation for cls in classmethod
+    #"ANN101", # Missing type annotation for self in method
+    #"ANN102", # Missing type annotation for cls in classmethod
     "ANN204", # Missing return type for __init__
     "ANN401", # Dynamically typed expressions (typing.Any) are disallowed
 ]

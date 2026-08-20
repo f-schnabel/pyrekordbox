@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-09-10
 
-import xml.etree.cElementTree as xml
+import xml.etree.ElementTree as xml
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union

@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-12-13
 
 import logging
-import xml.etree.cElementTree as xml
+import xml.etree.ElementTree as xml
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, IntEnum

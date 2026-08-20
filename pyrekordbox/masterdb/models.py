@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-08-07
 
@@ -1563,7 +1562,7 @@ class DjmdProperty(Base, StatsTime):
 
 
 class ImageFile(Base, StatsFull):
-    """Table for storing image files in the Rekordbox library.""" ""
+    """Table for storing image files in the Rekordbox library."""
 
     __tablename__ = "imageFile"
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2022-04-10
 
@@ -12,7 +11,7 @@ import json
 import logging
 import os
 import sys
-import xml.etree.cElementTree as xml
+import xml.etree.ElementTree as xml
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -188,7 +187,7 @@ def read_rekordbox6_options(pioneer_app_dir: Union[str, Path]) -> Dict[str, Any]
     pioneer_app_dir = Path(pioneer_app_dir)
     opt_path = pioneer_app_dir / "rekordboxAgent" / "storage" / "options.json"
     # Read and parse the options file
-    with open(opt_path, "r") as fh:
+    with open(opt_path) as fh:
         data = json.load(fh)
     options = dict()
     for key, value in data["options"]:
