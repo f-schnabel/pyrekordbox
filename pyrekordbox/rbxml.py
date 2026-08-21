@@ -9,8 +9,9 @@ import urllib.parse
 import xml.etree.ElementTree as xml
 from abc import abstractmethod
 from collections import abc
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Set, Union
+from typing import Any
 
 import bidict
 
@@ -50,18 +51,16 @@ class RootNodeNotInitializedError(Exception):
 class XmlDuplicateError(Exception):
     """Raised when a track already exists in the XML database."""
 
-    def __init__(self, key_type: str, key: str) -> None:
+    def __init__(self, key_type: str, key: object) -> None:
         super().__init__(f"XML database already contains a track with {key_type}={key}")
 
 
 class XmlAttributeKeyError(Exception):
-    def __init__(self, cls: Any, key: str, attributes: List[str]) -> None:
-        super().__init__(
-            f"{key} is not a valid key for {cls.__name__}! Valid attribs:\n{attributes}"
-        )
+    def __init__(self, cls: Any, key: str, attributes: list[str]) -> None:
+        super().__init__(f"{key} is not a valid key for {cls.__name__}! Valid attribs:\n{attributes}")
 
 
-def encode_path(path: Union[str, Path]) -> str:
+def encode_path(path: str | Path) -> str:
     r"""Encodes a file path as URI string.
 
     Parameters
@@ -120,17 +119,17 @@ class AbstractElement(abc.Mapping):  # type: ignore[type-arg]
     TAG: str
     """str: Name of the XML element"""
 
-    ATTRIBS: List[str]
+    ATTRIBS: list[str]
     """list[str]: List of all attribute keys of the XML element"""
 
-    GETTERS: Dict[str, Callable[[Any], Any]] = dict()
+    GETTERS: dict[str, Callable[[Any], Any]] = dict()
     """dict[str, Callable]: Dictionary of attribute getter conversion methods.
 
     See Also
     --------
     AbstractElement.get
     """
-    SETTERS: Dict[str, Callable[[Any], Any]] = dict()
+    SETTERS: dict[str, Callable[[Any], Any]] = dict()
     """dict[str, Callable]: Dictionary of attribute setter conversion methods.
 
     See Also
@@ -138,8 +137,8 @@ class AbstractElement(abc.Mapping):  # type: ignore[type-arg]
     AbstractElement.set
     """
 
-    def __init__(self, element: xml.Element = None, *args: Any, **kwargs: Any):
-        self._element: Union[xml.Element, None] = element
+    def __init__(self, element: xml.Element | None = None, *args: Any, **kwargs: Any):
+        self._element: xml.Element | None = element
         if element is None:
             self._init(*args, **kwargs)
         else:
@@ -154,7 +153,7 @@ class AbstractElement(abc.Mapping):  # type: ignore[type-arg]
         """Loads the sub-elements of an existing XML element."""
         pass
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: object, default: Any = None, /) -> Any:
         """Returns the value of an attribute of the XML element.
 
         The type of the attribute value is converted if a conversion method is specified
@@ -179,6 +178,8 @@ class AbstractElement(abc.Mapping):  # type: ignore[type-arg]
         XmlAttributeKeyError:
             Raised if `key` is not a valid attribute key.
         """
+        if not isinstance(key, str):
+            return default
         if key not in self.ATTRIBS:
             raise XmlAttributeKeyError(self.__class__, key, self.ATTRIBS)
         if self._element is None:
@@ -298,18 +299,16 @@ class Tempo(AbstractElement):
 
     def __init__(
         self,
-        parent: xml.Element = None,
+        parent: xml.Element | None = None,
         Inizio: float = 0.0,
         Bpm: float = 0.0,
         Metro: str = "4/4",
         Battito: int = 1,
-        element: xml.Element = None,
+        element: xml.Element | None = None,
     ):
         super().__init__(element, parent, Inizio, Bpm, Metro, Battito)
 
-    def _init(
-        self, parent: xml.Element, inizio: float, bpm: float, metro: str, battito: int
-    ) -> None:
+    def _init(self, parent: xml.Element, inizio: float, bpm: float, metro: str, battito: int) -> None:
         attrib = {
             "Inizio": str(inizio),
             "Bpm": str(bpm),
@@ -362,19 +361,17 @@ class PositionMark(AbstractElement):
 
     def __init__(
         self,
-        parent: xml.Element = None,
+        parent: xml.Element | None = None,
         Name: str = "",
         Type: str = "cue",
         Start: float = 0.0,
-        End: float = None,
+        End: float | None = None,
         Num: int = -1,
-        element: xml.Element = None,
+        element: xml.Element | None = None,
     ):
         super().__init__(element, parent, Name, Type, Start, End, Num)
 
-    def _init(
-        self, parent: xml.Element, name: str, type_: str, start: float, end: float, num: int
-    ) -> None:
+    def _init(self, parent: xml.Element, name: str, type_: str, start: float, end: float, num: int) -> None:
         if type_ not in POSMARK_TYPE_MAPPING.inv:
             raise ValueError(f"Type '{type_}' is not supported!")
         attrib = {
@@ -525,16 +522,16 @@ class Track(AbstractElement):
 
     def __init__(
         self,
-        parent: xml.Element = None,
-        Location: Union[str, Path] = "",
-        element: xml.Element = None,
+        parent: xml.Element | None = None,
+        Location: str | Path = "",
+        element: xml.Element | None = None,
         **kwargs: Any,
     ):
-        self.tempos: List[Tempo] = list()
-        self.marks: List[PositionMark] = list()
+        self.tempos: list[Tempo] = list()
+        self.marks: list[PositionMark] = list()
         super().__init__(element, parent, Location, **kwargs)
 
-    def _init(self, parent: xml.Element, Location: Union[str, Path] = "", **kwargs: Any) -> None:
+    def _init(self, parent: xml.Element, Location: str | Path = "", **kwargs: Any) -> None:
         attrib = {"Location": encode_path(Location)}
         for key, val in kwargs.items():
             if key not in self.ATTRIBS:
@@ -588,7 +585,7 @@ class Track(AbstractElement):
         Name: str = "",
         Type: str = "cue",
         Start: float = 0.0,
-        End: float = None,
+        End: float | None = None,
         Num: int = -1,
     ) -> PositionMark:
         """Adds a new ``PositionMark`` XML element to the track element.
@@ -644,7 +641,7 @@ class Node:
     FOLDER = 0
     PLAYLIST = 1
 
-    def __init__(self, parent: xml.Element = None, element: xml.Element = None, **attribs: Any):
+    def __init__(self, parent: xml.Element | None = None, element: xml.Element | None = None, **attribs: Any):
         if element is None:
             if parent is None:
                 raise ValueError("Either parent or element must be given!")
@@ -691,7 +688,7 @@ class Node:
         return cls(parent, None, **attrib)
 
     @property
-    def parent(self) -> Union[xml.Element, None]:
+    def parent(self) -> xml.Element | None:
         """xml.Element: The parent of the node."""
         return self._parent
 
@@ -771,7 +768,7 @@ class Node:
         """
         return Node(self._element, element=self._element.find(f'.//{self.TAG}[@Name="{name}"]'))
 
-    def get_playlists(self) -> List["Node"]:
+    def get_playlists(self) -> list["Node"]:
         """Returns all sub-nodes that are playlists.
 
         Returns
@@ -847,7 +844,7 @@ class Node:
         self._update_count()
         self._update_entries()
 
-    def add_track(self, key: Union[int, str]) -> xml.Element:
+    def add_track(self, key: int | str) -> xml.Element:
         """Adds a new track to the playlist node.
 
         Parameters
@@ -866,7 +863,7 @@ class Node:
         self._update_entries()
         return el
 
-    def remove_track(self, key: Union[int, str]) -> xml.Element:
+    def remove_track(self, key: int | str) -> xml.Element:
         """Removes a track from the playlist node.
 
         Parameters
@@ -882,7 +879,7 @@ class Node:
         self._update_entries()
         return el
 
-    def get_tracks(self) -> List[Union[int, str]]:
+    def get_tracks(self) -> list[int | str]:
         """Returns the keys of all tracks contained in the playlist node.
 
         Returns
@@ -896,18 +893,18 @@ class Node:
         elements = self._element.findall(f".//{Track.TAG}")
         items = list()
         for el in elements:
-            val: Union[int, str] = el.attrib["Key"]
+            val: int | str = el.attrib["Key"]
             if self.key_type == "TrackID":
                 val = int(val)
             items.append(val)
         return items
 
-    def get_track(self, key: str) -> Union[int, str]:
+    def get_track(self, key: str) -> int | str:
         """Returns the formatted key of the track."""
         el = self._element.find(f'{Track.TAG}[@Key="{key}"]')
         if el is None:
             raise ValueError(f"Track key {key} not found.")
-        val: Union[int, str] = el.attrib["Key"]
+        val: int | str = el.attrib["Key"]
         if self.key_type == "TrackID":
             val = int(val)
         return val
@@ -986,21 +983,21 @@ class RekordboxXml:
 
     def __init__(
         self,
-        path: Union[str, Path] = None,
-        name: str = None,
-        version: str = None,
-        company: str = None,
+        path: str | Path | None = None,
+        name: str | None = None,
+        version: str | None = None,
+        company: str | None = None,
     ):
-        self._root: Union[xml.Element, None] = None
-        self._product: Union[xml.Element, None] = None
-        self._collection: Union[xml.Element, None] = None
-        self._playlists: Union[xml.Element, None] = None
-        self._root_node: Union[Node, None] = None
+        self._root: xml.Element | None = None
+        self._product: xml.Element | None = None
+        self._collection: xml.Element | None = None
+        self._playlists: xml.Element | None = None
+        self._root_node: Node | None = None
 
         self._last_id = 0
         # Used for fast duplicate check
-        self._locations: Set[str] = set()
-        self._ids: Set[int] = set()
+        self._locations: set[str] = set()
+        self._ids: set[int] = set()
 
         if path is not None:
             self._parse(path)
@@ -1049,7 +1046,7 @@ class RekordboxXml:
             raise RootNodeNotInitializedError()
         return self._root_node
 
-    def _parse(self, path: Union[str, Path]) -> None:
+    def _parse(self, path: str | Path) -> None:
         """Parse an existing XML file.
 
         Parameters
@@ -1077,7 +1074,11 @@ class RekordboxXml:
         self._update_cache()
 
     def _init(
-        self, name: str = None, version: str = None, company: str = None, frmt_version: str = None
+        self,
+        name: str | None = None,
+        version: str | None = None,
+        company: str | None = None,
+        frmt_version: str | None = None,
     ) -> None:
         """Initialize a new XML file."""
         frmt_version = frmt_version or "1.0.0"
@@ -1101,7 +1102,7 @@ class RekordboxXml:
         if track_ids:
             self._last_id = max(track_ids)
 
-    def get_tracks(self) -> List[Track]:
+    def get_tracks(self) -> list[Track]:
         """Returns the tracks in the collection of the XML file.
 
         Returns
@@ -1115,7 +1116,7 @@ class RekordboxXml:
         return [Track(element=el) for el in elements]
 
     def get_track(
-        self, index: int = None, TrackID: Union[int, str] = None, Location: str = None
+        self, index: int | None = None, TrackID: int | str | None = None, Location: str | None = None
     ) -> Track:
         """Get a track in the collection of the XML file.
 
@@ -1166,7 +1167,7 @@ class RekordboxXml:
             raise ValueError("Either index, TrackID or Location has to be specified!")
         return Track(element=el)
 
-    def get_track_ids(self) -> List[int]:
+    def get_track_ids(self) -> list[int]:
         """Returns the `TrackID` of all tracks in the collection of the XML file.
 
         Returns
@@ -1244,7 +1245,7 @@ class RekordboxXml:
         for track in self.get_tracks():
             self._add_cache(track)
 
-    def add_track(self, location: Union[str, Path], **kwargs: Any) -> Track:
+    def add_track(self, location: str | Path, **kwargs: Any) -> Track:
         """Add a new track element to the Rekordbox XML collection.
 
         Parameters
@@ -1372,7 +1373,7 @@ class RekordboxXml:
             raise RootNodeNotInitializedError()
         return self._root_node.add_playlist(name, keytype)
 
-    def tostring(self, indent: str = None, encoding: str = "utf-8") -> str:
+    def tostring(self, indent: str | None = None, encoding: str = "utf-8") -> str:
         r"""Returns the contents of the XML file as a string.
 
         Parameters
@@ -1416,9 +1417,7 @@ class RekordboxXml:
                 text = data.decode(encoding)
         return text
 
-    def save(
-        self, path: Union[str, Path] = "", indent: str = None, encoding: str = "utf-8"
-    ) -> None:
+    def save(self, path: str | Path = "", indent: str | None = None, encoding: str = "utf-8") -> None:
         r"""Saves the contents to an XML file.
 
         Parameters

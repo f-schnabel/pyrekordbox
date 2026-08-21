@@ -2,8 +2,8 @@
 # Date:   2023-02-01
 
 import re
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Dict, Iterator, Tuple, Union
 
 from . import structs
 from .file import AnlzFile
@@ -11,7 +11,7 @@ from .file import AnlzFile
 RE_ANLZ = re.compile("ANLZ[0-9]{4}.(DAT|EXT|2EX)")
 
 
-def is_anlz_file(path: Union[str, Path]) -> bool:
+def is_anlz_file(path: str | Path) -> bool:
     """Checks if the name of a file matches the ANLZ file name pattern.
 
     Parameters
@@ -41,7 +41,7 @@ def is_anlz_file(path: Union[str, Path]) -> bool:
     return bool(RE_ANLZ.match(path.name))
 
 
-def get_anlz_paths(root: Union[str, Path]) -> Dict[str, Union[Path, None]]:
+def get_anlz_paths(root: str | Path) -> dict[str, Path | None]:
     """Returns the paths of all existing ANLZ files in a directory.
 
     Parameters
@@ -61,14 +61,14 @@ def get_anlz_paths(root: Union[str, Path]) -> Dict[str, Union[Path, None]]:
     >>> p["DAT"]
     directory/ANLZ0000.DAT
     """
-    paths: Dict[str, Union[Path, None]] = {"DAT": None, "EXT": None, "2EX": None}
+    paths: dict[str, Path | None] = {"DAT": None, "EXT": None, "2EX": None}
     for path in Path(root).iterdir():
         if RE_ANLZ.match(path.name):
             paths[path.suffix[1:].upper()] = path
     return paths
 
 
-def walk_anlz_dirs(root_dir: Union[str, Path]) -> Iterator[Path]:
+def walk_anlz_dirs(root_dir: str | Path) -> Iterator[Path]:
     """Finds all ANLZ directory paths recursively.
 
     Parameters
@@ -87,7 +87,7 @@ def walk_anlz_dirs(root_dir: Union[str, Path]) -> Iterator[Path]:
                 yield path
 
 
-def walk_anlz_paths(root_dir: Union[str, Path]) -> Iterator[Tuple[Path, Dict[str, Path]]]:
+def walk_anlz_paths(root_dir: str | Path) -> Iterator[tuple[Path, dict[str, Path]]]:
     """Finds all ANLZ directory paths and the containing file paths recursively.
 
     Parameters
@@ -109,7 +109,7 @@ def walk_anlz_paths(root_dir: Union[str, Path]) -> Iterator[Tuple[Path, Dict[str
         yield anlz_dir, files
 
 
-def read_anlz_files(root: Union[str, Path] = "") -> Dict[Path, AnlzFile]:
+def read_anlz_files(root: str | Path = "") -> dict[Path, AnlzFile]:
     """Open all ANLZ files in the given root directory.
 
     Parameters

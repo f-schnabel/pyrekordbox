@@ -6,9 +6,10 @@
 import math
 import re
 import struct
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from enum import IntEnum
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Self, override
 
 import numpy as np
 from sqlalchemy import (
@@ -118,7 +119,7 @@ TABLES = [
 
 def datetime_to_str(value: datetime) -> str:
     # Convert to UTC timezone string
-    s = value.astimezone(timezone.utc).isoformat().replace("T", " ")
+    s = value.astimezone(UTC).isoformat().replace("T", " ")
     # Get the timezone info (last 6 characters of the string)
     tzinfo = s[-6:]
     s = s[:-9] + " " + tzinfo
@@ -148,7 +149,7 @@ def string_to_datetime(value: str) -> datetime:
     return dt.astimezone().replace(tzinfo=None)
 
 
-class DateTime(TypeDecorator):  # type: ignore[type-arg]
+class DateTime(TypeDecorator[datetime]):
     """Custom datetime column with timezone support.
 
     The datetime format in the database is `YYYY-MM-DD HH:MM:SS.SSS +00:00`.
@@ -158,10 +159,12 @@ class DateTime(TypeDecorator):  # type: ignore[type-arg]
     impl = Text
     cache_ok = True
 
-    def process_bind_param(self, value: datetime, dialect: Dialect) -> str:  # type: ignore[override]
-        return datetime_to_str(value)
+    @override
+    def process_bind_param(self, value: datetime | None, dialect: Dialect) -> str | None:
+        return datetime_to_str(value) if value is not None else None
 
-    def process_result_value(self, value: str, dialect: Dialect) -> Optional[datetime]:  # type: ignore[override]
+    @override
+    def process_result_value(self, value: Any | None, dialect: Dialect) -> datetime | None:
         if value:
             return string_to_datetime(value)
         return None
@@ -189,34 +192,34 @@ class Base(DeclarativeBase):
     """Base class used to initialize the declarative base for all tables."""
 
     __tablename__: str
-    __keys__: List[str] = []
+    __keys__: list[str] = []
 
     @classmethod
-    def create(cls, **kwargs: Any):  # type: ignore # noqa: ANN206
+    def create(cls, **kwargs: Any) -> Self:
         with RekordboxAgentRegistry.disabled():
             # noinspection PyArgumentList
             self = cls(**kwargs)
         return self
 
     @classmethod
-    def columns(cls) -> List[str]:
+    def columns(cls) -> list[str]:
         """Returns a list of all column names without the relationships."""
         return [column.name for column in inspect(cls).c]
 
     @classmethod
-    def relationships(cls) -> List[str]:
+    def relationships(cls) -> list[str]:
         """Returns a list of all relationship names."""
         return [column.key for column in inspect(cls).relationships]  # noqa
 
     @classmethod
-    def __get_keys__(cls) -> List[str]:  # pragma: no cover
+    def __get_keys__(cls) -> list[str]:  # pragma: no cover
         """Get all attributes of the table."""
         items = cls.__dict__.items()
         keys = [k for k, v in items if not callable(v) and not k.startswith("_")]
         return keys
 
     @classmethod
-    def keys(cls) -> List[str]:  # pragma: no cover
+    def keys(cls) -> list[str]:  # pragma: no cover
         """Returns a list of all column names including the relationships."""
         if not cls.__keys__:  # Cache the keys
             cls.__keys__ = cls.__get_keys__()
@@ -238,15 +241,15 @@ class Base(DeclarativeBase):
             RekordboxAgentRegistry.on_update(self, key, value)
         super().__setattr__(key, value)
 
-    def values(self) -> List[Any]:
+    def values(self) -> list[Any]:
         """Returns a list of all column values including the relationships."""
         return [self.__getitem__(key) for key in self.keys()]
 
-    def items(self) -> Iterator[Tuple[str, Any]]:
+    def items(self) -> Iterator[tuple[str, Any]]:
         for key in self.__iter__():
             yield key, self.__getitem__(key)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary of all column names and values."""
         return {key: self.__getitem__(key) for key in self.columns()}
 
@@ -264,9 +267,7 @@ class StatsTime:
 
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     """The creation date of the table entry (from :class:`StatsTime`)."""
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now, onupdate=datetime.now
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
     """The last update date of the table entry (from :class:`StatsTime`)."""
 
 
@@ -293,9 +294,7 @@ class StatsFull:
     (from :class:`StatsFull`)."""
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     """The creation date of the table entry (from :class:`StatsFull`)."""
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now, onupdate=datetime.now
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
     """The last update date of the table entry (from :class:`StatsFull`)."""
 
     def __repr__(self) -> str:
@@ -511,9 +510,7 @@ class DjmdAlbum(Base, StatsFull):
     """The ID (primary key) of the table entry."""
     Name: Mapped[str] = mapped_column(VARCHAR(255), default=None)
     """The name of the album."""
-    AlbumArtistID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdArtist.ID"), default=None
-    )
+    AlbumArtistID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdArtist.ID"), default=None)
     """The ID of the :class:`DjmdArtist` entry of the artist of this album."""
     ImagePath: Mapped[str] = mapped_column(VARCHAR(255), default=None)
     """The path of the image of the album."""
@@ -561,9 +558,7 @@ class DjmdCategory(Base, StatsFull):
 
     ID: Mapped[str] = mapped_column(VARCHAR(255), primary_key=True)
     """The ID (primary key) of the table entry."""
-    MenuItemID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdMenuItems.ID"), default=None
-    )
+    MenuItemID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdMenuItems.ID"), default=None)
     """The ID of the :class:`DjmdMenuItems` entry belonging to the category."""
     Seq: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence of the category (for ordering)."""
@@ -652,9 +647,7 @@ class DjmdContent(Base, StatsFull):
     """The ID of the :class:`DjmdArtist` entry of the remixer of this track."""
     LabelID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdLabel.ID"), default=None)
     """The ID of the :class:`DjmdLabel` entry of the label of this track."""
-    OrgArtistID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdArtist.ID"), default=None
-    )
+    OrgArtistID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdArtist.ID"), default=None)
     """The ID of the :class:`DjmdArtist` entry of the original artist of this track."""
     KeyID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdKey.ID"), default=None)
     """The ID of the :class:`DjmdKey` entry of the key of this track."""
@@ -862,9 +855,7 @@ class DjmdCue(Base, StatsFull):
     """The in point seek info of the cue point."""
     OutPointSeekInfo: Mapped[str] = mapped_column(VARCHAR(255), default=None)
     """The out point seek info of the cue point."""
-    ContentUUID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdContent.UUID"), default=None
-    )
+    ContentUUID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdContent.UUID"), default=None)
     """The UUID of the content (:class:`DjmdContent`) containing the cue point."""
 
     Content = relationship("DjmdContent", foreign_keys=ContentID, back_populates="Cues")
@@ -995,9 +986,7 @@ class DjmdHotCueBanklist(Base, StatsFull):
     """The path to the image of the hot-cue banklist."""
     Attribute: Mapped[int] = mapped_column(Integer, default=None)
     """The attributes of the hot cue banklist."""
-    ParentID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdHotCueBanklist.ID"), default=None
-    )
+    ParentID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdHotCueBanklist.ID"), default=None)
     """The ID of the parent hot-cue banklist (:class:`DjmdHotCueBanklist`)."""
 
     Children = relationship(
@@ -1026,9 +1015,7 @@ class DjmdSongHotCueBanklist(Base, StatsFull):
 
     ID: Mapped[str] = mapped_column(VARCHAR(255), primary_key=True)
     """The ID (primary key) of the table entry."""
-    HotCueBanklistID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdHotCueBanklist.ID"), default=None
-    )
+    HotCueBanklistID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdHotCueBanklist.ID"), default=None)
     """The ID of the hot cue banklist (:class:`DjmdHotCueBanklist`)."""
     ContentID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdContent.ID"), default=None)
     """The ID of the content (:class:`DjmdContent`)."""
@@ -1068,9 +1055,7 @@ class DjmdSongHotCueBanklist(Base, StatsFull):
     """The in point seek info of the hot-cue."""
     OutPointSeekInfo: Mapped[str] = mapped_column(VARCHAR(255), default=None)
     """The out point seek info of the hot-cue."""
-    HotCueBanklistUUID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdHotCueBanklist.UUID"), default=None
-    )
+    HotCueBanklistUUID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdHotCueBanklist.UUID"), default=None)
     """The UUID of the hot-cue banklist (links to :class:`DjmdHotCueBanklist`)."""
 
     Content = relationship("DjmdContent")
@@ -1162,7 +1147,7 @@ class DjmdMixerParam(Base, StatsFull):
         return 20 * math.log10(factor)
 
     @staticmethod
-    def _set_db(value: float) -> Tuple[int, int]:
+    def _set_db(value: float) -> tuple[int, int]:
         if value == -np.inf:
             return 0, 0
         factor = 10 ** (value / 20)
@@ -1209,9 +1194,7 @@ class DjmdMyTag(Base, StatsFull):
 
     __tablename__ = "djmdMyTag"
 
-    ID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdMyTag.ParentID"), primary_key=True
-    )
+    ID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdMyTag.ParentID"), primary_key=True)
     """The ID (primary key) of the table entry."""
     Seq: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence of the My-Tag list (for ordering)."""
@@ -1224,9 +1207,7 @@ class DjmdMyTag(Base, StatsFull):
 
     MyTags = relationship("DjmdSongMyTag", back_populates="MyTag")
     """The My-Tag items (links to :class:`DjmdSongMyTag`)."""
-    Children = relationship(
-        "DjmdMyTag", foreign_keys=ParentID, backref=backref("Parent", remote_side=[ID])
-    )
+    Children = relationship("DjmdMyTag", foreign_keys=ParentID, backref=backref("Parent", remote_side=[ID]))
     """The child lists of the My-Tag list (links to :class:`DjmdMyTag`).
     Backrefs to the parent list via :attr:`Parent`.
     """
@@ -1330,9 +1311,7 @@ class DjmdSongPlaylist(Base, StatsFull):
 
     ID: Mapped[str] = mapped_column(VARCHAR(255), primary_key=True)
     """The ID (primary key) of the table entry."""
-    PlaylistID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdPlaylist.ID"), default=None
-    )
+    PlaylistID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdPlaylist.ID"), default=None)
     """The ID of the playlist this item is in (:class:`DjmdPlaylist`)."""
     ContentID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdContent.ID"), default=None)
     """The ID of the content this item belongs to (:class:`DjmdContent`)."""
@@ -1363,9 +1342,7 @@ class DjmdRelatedTracks(Base, StatsFull):
     """The name of the related tracks list."""
     Attribute: Mapped[int] = mapped_column(Integer, default=None)
     """The attribute of the related tracks list."""
-    ParentID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdRelatedTracks.ID"), default=None
-    )
+    ParentID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdRelatedTracks.ID"), default=None)
     """The ID of the parent related tracks list (:class:`DjmdRelatedTracks`)."""
     Criteria: Mapped[str] = mapped_column(Text, default=None)
     """The criteria used to determine the items in the related tracks list."""
@@ -1400,9 +1377,7 @@ class DjmdSongRelatedTracks(Base, StatsFull):
 
     ID: Mapped[str] = mapped_column(VARCHAR(255), primary_key=True)
     """The ID (primary key) of the table entry."""
-    RelatedTracksID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdRelatedTracks.ID"), default=None
-    )
+    RelatedTracksID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdRelatedTracks.ID"), default=None)
     """The ID of the related tracks list this item is in
     (:class:`DjmdRelatedTracks`)."""
     ContentID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdContent.ID"), default=None)
@@ -1506,9 +1481,7 @@ class DjmdSort(Base, StatsFull):
 
     ID: Mapped[str] = mapped_column(VARCHAR(255), primary_key=True)
     """The ID (primary key) of the table entry."""
-    MenuItemID: Mapped[str] = mapped_column(
-        VARCHAR(255), ForeignKey("djmdMenuItems.ID"), default=None
-    )
+    MenuItemID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdMenuItems.ID"), default=None)
     """The ID of the menu item this sort list is in (:class:`DjmdMenuItems`)."""
     Seq: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence of the sort list (for ordering)."""

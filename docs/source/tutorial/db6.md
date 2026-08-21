@@ -24,21 +24,20 @@ a SQLAlchemy query object, which can be used to filter and sort the results.
 ````python
 from pyrekordbox.masterdb import models
 
-query = db.query(models.DjmdContent)
+query = db.session.query(models.DjmdContent)
 results = query.filter(models.DjmdContent.Title == "My Song").all()
 ````
 
-To simplify querying the database, the ``MasterDatabase`` class provides simple
-getters for executing queries on all the tables. The parameters of the getters are
-passed to the ``query.filter_by()`` method. If the query is filtered by a *unique* key
-(e.g. ``ID``), the query will be executed using the ``query.one()`` method, returning the
-table instance directly:
+To simplify querying the database, the ``MasterDatabase`` class provides typed getters
+for all tables. Their parameters are passed to ``query.filter_by()`` and they always
+return a SQLAlchemy query, including when filtering by a unique key. Select the desired
+result explicitly with ``one()``, ``one_or_none()``, ``first()``, or ``all()``:
 ````python
 # Return specific entry in DjmDContent table
-content = db.get_content(ID=0)
+content = db.get_content(ID=0).one()
 ````
 
-In all other cases the query is returned, allowing to further filter and sort the results:
+The returned query can also be filtered or sorted further:
 ````python
 # Query and sort entries in DjmdHistory table
 for history in db.get_history().order_by(models.DjmdHistory.DateCreated):
@@ -55,7 +54,7 @@ directly. For example, the [djmdContent table][djmdContent-table] contains an
 The table declarations provide relationships to access the linked values.
 The artist of a song can be accessed as follows:
 ````python
-content = db.get_content(ID=0)
+content = db.get_content(ID=0).one()
 artist = content.Artist
 ````
 A full list of linked tables can be found in the [](db6-format) documentation.
@@ -125,7 +124,7 @@ Adding tracks to a playlist is done by calling the ``db.add_to_playlist()`` meth
 It accepts a [DjmdContent] instance or corresponding ID and creates a new entry in
 the [djmdSongPlaylist table][djmdSongPlaylist-table], which stores the contents of playlists:
 ````python
-content = db.get_content(ID=0)
+content = db.get_content(ID=0).one()
 playlist = db.get_playlist(Name="My Playlist").one()
 song = db.add_to_playlist(playlist, content)
 ````
