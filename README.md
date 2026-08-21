@@ -31,6 +31,8 @@ Tested Rekordbox versions: ``5.8.6 | 6.7.7 | 7.0.9``
 
 ## 🔧 Installation
 
+Pyrekordbox requires Python 3.12 or newer.
+
 Pyrekordbox is available on [PyPI][pypi-link]:
 ````commandline
 pip install pyrekordbox
@@ -137,19 +139,19 @@ from pyrekordbox.rbxml import RekordboxXml
 
 xml = RekordboxXml("database.xml")
 
-track = xml.get_track(0)    # Get track by index (or TrackID)
-track_id = track.TrackID    # Access via attribute
-name = track["Name"]        # or dictionary syntax
+track = xml.get_track(0)  # Get track by index (or TrackID)
+track_id = track.TrackID  # Access via attribute
+name = track["Name"]  # or dictionary syntax
 
 path = "/path/to/file.mp3"
-track = xml.add_track(path) # Add new track
-track["Name"] = "Title"     # Add attributes to new track
-track["TrackID"] = 10       # Types are handled automatically
+track = xml.add_track(path)  # Add new track
+track["Name"] = "Title"  # Add attributes to new track
+track["TrackID"] = 10  # Types are handled automatically
 
 # Get playlist (folder) by path
 pl = xml.get_playlist("Folder", "Sub Playlist")
 keys = pl.get_tracks()  # Get keys of tracks in playlist
-ktype = pl.key_type     # Key can either be TrackID or Location
+ktype = pl.key_type  # Key can either be TrackID or Location
 
 # Add tracks and sub-playlists (folders)
 pl.add_track(track.TrackID)

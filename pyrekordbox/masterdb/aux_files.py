@@ -4,12 +4,12 @@
 import xml.etree.ElementTree as xml
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from ..config import get_config
 from ..utils import pretty_xml
 
-Attribs = Dict[str, Any]
+Attribs = dict[str, Any]
 
 
 class XmlElementNotInitializedError(Exception):
@@ -35,7 +35,7 @@ class MasterPlaylistXml:
 
     KEYS = ["Id", "ParentId", "Attributes", "Timestamp", "Lib_Type", "CheckType"]
 
-    def __init__(self, path: Union[str, Path] = None, db_dir: Union[str, Path] = None):
+    def __init__(self, path: str | Path | None = None, db_dir: str | Path | None = None):
         if path is None:
             if db_dir is None:
                 db_dir = get_config("rekordbox6", "db_dir")
@@ -66,7 +66,7 @@ class MasterPlaylistXml:
     def modified(self) -> bool:
         return self._changed
 
-    def get_playlists(self) -> List[Dict[str, Any]]:
+    def get_playlists(self) -> list[dict[str, Any]]:
         """Returns a list of the attributes of all playlist elements."""
         if self.playlists is None:
             raise XmlElementNotInitializedError("playlists")
@@ -75,7 +75,7 @@ class MasterPlaylistXml:
             items.append(playlist.attrib)
         return items
 
-    def get(self, playlist_id: Union[str, int]) -> Optional[Attribs]:
+    def get(self, playlist_id: str | int) -> Attribs | None:
         """Returns element attribs with the PlaylistID used in the `master.db` database.
 
         Parameters
@@ -154,7 +154,7 @@ class MasterPlaylistXml:
         self._changed = True
         return element
 
-    def remove(self, playlist_id: Union[str, int]) -> None:
+    def remove(self, playlist_id: str | int) -> None:
         """Removes the element with the PlaylistID used in the `master.db` database.
 
         Parameters
@@ -176,11 +176,11 @@ class MasterPlaylistXml:
     def update(
         self,
         playlist_id: str,
-        parent_id: str = None,
-        attribute: int = None,
-        updated_at: datetime = None,
-        lib_type: int = None,
-        check_type: int = None,
+        parent_id: str | None = None,
+        attribute: int | None = None,
+        updated_at: datetime | None = None,
+        lib_type: int | None = None,
+        check_type: int | None = None,
     ) -> None:
         """Updates the element with the PlaylistID used in the `master.db` database.
 
@@ -224,11 +224,11 @@ class MasterPlaylistXml:
         element.attrib.update(attribs)
         self._changed = True
 
-    def to_string(self, indent: str = None) -> str:
+    def to_string(self, indent: str | None = None) -> str:
         text: str = pretty_xml(self.root, indent, encoding="utf-8")
         return text
 
-    def save(self, path: Union[str, Path] = None, indent: str = None) -> None:
+    def save(self, path: str | Path | None = None, indent: str | None = None) -> None:
         if path is None:
             path = self.path
         path = str(path)

@@ -2,18 +2,15 @@
 # Date:   2023-08-13
 
 from pathlib import Path
-from typing import Union
 
 from ..masterdb.database import MasterDatabase
 from ..utils import warn_deprecated
 
-PathLike = Union[str, Path]
+type PathLike = str | Path
 
 
 class Rekordbox6Database(MasterDatabase):
-    def __init__(
-        self, path: PathLike = None, db_dir: PathLike = "", key: str = "", unlock: bool = True
-    ):
+    def __init__(self, path: PathLike | None = None, db_dir: PathLike = "", key: str = "", unlock: bool = True):
         warn_deprecated(
             "pyrekordbox.db6.Rekordbox6Database",
             "pyrekordbox.masterdb.MasterDatabase",

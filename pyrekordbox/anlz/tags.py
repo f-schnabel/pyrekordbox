@@ -3,8 +3,9 @@
 
 import logging
 from abc import ABC
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence, Tuple, Union
+from typing import Any, override
 
 import numpy as np
 import numpy.typing as npt
@@ -26,8 +27,7 @@ class StructNotInitializedError(Exception):
 class BuildTagLengthError(Exception):
     def __init__(self, struct: Struct, len_data: int) -> None:
         super().__init__(
-            f"`len_tag` ({struct.len_tag}) of '{struct.type}' does not "
-            f"match the data-length ({len_data})!"
+            f"`len_tag` ({struct.len_tag}) of '{struct.type}' does not match the data-length ({len_data})!"
         )
 
 
@@ -40,7 +40,7 @@ class AbstractAnlzTag(ABC):
     LEN_TAG: int = 0  # Expected value of `len_tag`
 
     def __init__(self, tag_data: bytes) -> None:
-        self.struct: Union[Struct, None] = None
+        self.struct: Struct | None = None
         if tag_data is not None:
             self.parse(tag_data)
 
@@ -92,7 +92,7 @@ class AbstractAnlzTag(ABC):
             raise BuildTagLengthError(self.struct, len_data)
         return data
 
-    def get(self) -> Container:
+    def get(self) -> Any:
         if self.struct is None:
             raise StructNotInitializedError()
         return self.struct.content
@@ -116,7 +116,7 @@ class AbstractAnlzTag(ABC):
         return str(self.struct)
 
 
-def _parse_wf_preview(tag: structs.AnlzTag) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
+def _parse_wf_preview(tag: structs.AnlzTag) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
     n = len(tag.entries)
     wf = np.zeros(n, dtype=np.int8)
     col = np.zeros(n, dtype=np.int8)
@@ -160,7 +160,8 @@ class PQTZAnlzTag(AbstractAnlzTag):
     def times(self) -> npt.NDArray[np.float64]:
         return self.get_times()
 
-    def get(self) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    @override
+    def get(self) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
         n = len(self.content.entries)
         beats = np.zeros(n, dtype=np.int8)
         bpms = np.zeros(n, dtype=np.float64)
@@ -193,9 +194,7 @@ class PQTZAnlzTag(AbstractAnlzTag):
 
         # For now only values of existing beats can be set
         if n_beats != n:
-            raise ValueError(
-                f"Number of beats not equal to current content length: {n_beats} != {n}"
-            )
+            raise ValueError(f"Number of beats not equal to current content length: {n_beats} != {n}")
 
         for i, (beat, bpm, t) in enumerate(zip(beats, bpms, times)):
             data = {"beat": int(beat), "tempo": int(100 * bpm), "time": int(1000 * t)}
@@ -278,7 +277,8 @@ class PQT2AnlzTag(AbstractAnlzTag):
             actual = 2 * len(self.content.entries)  # each entry consist of 2 bytes
             assert actual == expected, f"{actual} != {expected}"
 
-    def get(self) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    @override
+    def get(self) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
         n = len(self.content.bpm)
         beats = np.zeros(n, dtype=np.int8)
         bpms = np.zeros(n, dtype=np.float64)
@@ -355,10 +355,11 @@ class PPTHAnlzTag(AbstractAnlzTag):
         path: str = self.content.path
         return path
 
+    @override
     def get(self) -> str:
         return self.path
 
-    def set(self, path: Union[str, Path]) -> None:
+    def set(self, path: str | Path) -> None:
         pathstr = str(path).replace("\\", "/")
         len_path = len(pathstr.encode("utf-16-be")) + 2
         self.content.path = pathstr
@@ -378,6 +379,7 @@ class PVBRAnlzTag(AbstractAnlzTag):
     LEN_HEADER = 16
     LEN_TAG = 1620
 
+    @override
     def get(self) -> npt.NDArray[np.uint64]:
         return np.array(self.content.idx, dtype=np.uint64)
 
@@ -389,6 +391,7 @@ class PVDIAnlzTag(AbstractAnlzTag):
     name = "vocal_detection"
     LEN_HEADER = 24
 
+    @override
     def get(self) -> list[int]:
         if self.struct is None:
             raise StructNotInitializedError()
@@ -402,6 +405,7 @@ class PVB2AnlzTag(AbstractAnlzTag):
     name = "vbr2"
     LEN_HEADER = 32
 
+    @override
     def get(self) -> list[bytes]:
         if self.struct is None:
             raise StructNotInitializedError()
@@ -423,7 +427,8 @@ class PWAVAnlzTag(AbstractAnlzTag):
     name = "wf_preview"
     LEN_HEADER = 20
 
-    def get(self) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
+    @override
+    def get(self) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
         return _parse_wf_preview(self.content)
 
 
@@ -434,7 +439,8 @@ class PWV2AnlzTag(AbstractAnlzTag):
     name = "wf_tiny_preview"
     LEN_HEADER = 20
 
-    def get(self) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
+    @override
+    def get(self) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
         return _parse_wf_preview(self.content)
 
 
@@ -445,7 +451,8 @@ class PWV3AnlzTag(AbstractAnlzTag):
     name = "wf_detail"
     LEN_HEADER = 24
 
-    def get(self) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
+    @override
+    def get(self) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
         return _parse_wf_preview(self.content)
 
 
@@ -456,7 +463,8 @@ class PWV4AnlzTag(AbstractAnlzTag):
     name = "wf_color"
     LEN_HEADER = 24
 
-    def get(self) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+    @override
+    def get(self) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
         num_entries = self.content.len_entries
         data = self.content.entries
         ws, hs = 1, 1
@@ -493,7 +501,8 @@ class PWV5AnlzTag(AbstractAnlzTag):
     name = "wf_color_detail"
     LEN_HEADER = 24
 
-    def get(self) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.int64]]:
+    @override
+    def get(self) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.int64]]:
         """Parse the Waveform Color Detail Tag (PWV5).
 
         The format of the entries is:

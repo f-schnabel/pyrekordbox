@@ -4,12 +4,22 @@
 import logging
 from collections import abc
 from pathlib import Path
-from typing import Any, Iterator, List, Union
+from typing import Any, Literal, overload, override
 
 from construct import Int16ub, Struct
 
 from . import structs
-from .tags import TAGS, AbstractAnlzTag, StructNotInitializedError
+from .tags import (
+    TAGS,
+    AbstractAnlzTag,
+    PPTHAnlzTag,
+    PQT2AnlzTag,
+    PQTZAnlzTag,
+    PVB2AnlzTag,
+    PVBRAnlzTag,
+    PVDIAnlzTag,
+    StructNotInitializedError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,25 +29,24 @@ XOR_MASK = bytearray.fromhex("CB E1 EE FA E5 EE AD EE E9 D2 E9 EB E1 E9 F3 E8 E9
 class BuildFileLengthError(Exception):
     def __init__(self, struct: Struct, len_data: int) -> None:
         super().__init__(
-            f"`len_file` ({struct.len_file}) of '{struct.type}' does not "
-            f"match the data-length ({len_data})!"
+            f"`len_file` ({struct.len_file}) of '{struct.type}' does not match the data-length ({len_data})!"
         )
 
 
-class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
+class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag]]):
     """Rekordbox `ANLZnnnn.xxx` binary file handler."""
 
     def __init__(self) -> None:
         self._path: str = ""
-        self.file_header: Union[Struct, None] = None
-        self.tags: List[AbstractAnlzTag] = list()
+        self.file_header: Struct | None = None
+        self.tags: list[AbstractAnlzTag] = list()
 
     @property
     def num_tags(self) -> int:
         return len(self.tags)
 
     @property
-    def tag_types(self) -> List[str]:
+    def tag_types(self) -> list[str]:
         return [tag.type for tag in self.tags]
 
     @property
@@ -63,7 +72,7 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
         return self
 
     @classmethod
-    def parse_file(cls, path: Union[str, Path]) -> "AnlzFile":
+    def parse_file(cls, path: str | Path) -> "AnlzFile":
         """Reads and parses a Rekordbox analysis binary file.
 
         Parameters
@@ -99,7 +108,7 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
         tag_type = file_header.type
         assert tag_type == "PMAI"
 
-        tags = list()
+        tags: list[AbstractAnlzTag] = []
         i = file_header.len_header
         while i < file_header.len_file:
             # Get data starting from struct
@@ -189,38 +198,80 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
 
         return data
 
-    def save(self, path: Union[str, Path] = "") -> None:
+    def save(self, path: str | Path = "") -> None:
         path = path or self._path
 
         data = self.build()
         with open(path, "wb") as fh:
             fh.write(data)
 
+    @overload
+    def get_tag(self, key: Literal["PQTZ", "beat_grid"]) -> PQTZAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PQT2", "beat_grid2"]) -> PQT2AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PPTH", "path"]) -> PPTHAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PVBR", "vbr"]) -> PVBRAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PVDI", "vocal_detection"]) -> PVDIAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PVB2", "vbr2"]) -> PVB2AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: str) -> AbstractAnlzTag:
+        pass
+
     def get_tag(self, key: str) -> AbstractAnlzTag:
         return self.__getitem__(key)[0]
 
-    def getall_tags(self, key: str) -> List[AbstractAnlzTag]:
+    def getall_tags(self, key: str) -> list[AbstractAnlzTag]:
         return self.__getitem__(key)
 
-    def get(self, key: str) -> Any:  # type: ignore[override]
-        return self.__getitem__(key)[0].get()
+    @overload
+    def get(self, key: object, /) -> Any | None:
+        pass
 
-    def getall(self, key: str) -> List[Any]:
+    @overload
+    def get[T](self, key: object, default: T, /) -> Any | T:
+        pass
+
+    @override
+    def get(self, key: object, default: Any = None, /) -> Any:
+        if not isinstance(key, str):
+            return default
+        tags = self.__getitem__(key)
+        return tags[0].get() if tags else default
+
+    def getall(self, key: str) -> list[Any]:
         return [tag.get() for tag in self.__getitem__(key)]
 
     def __len__(self) -> int:
-        return len(self.keys())
+        return len(set(self))
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> abc.Iterator[str]:
         return iter(set(tag.type for tag in self.tags))
 
-    def __getitem__(self, item: str) -> List[AbstractAnlzTag]:
+    def __getitem__(self, item: str) -> list[AbstractAnlzTag]:
         if item.isupper() and len(item) == 4:
             return [tag for tag in self.tags if tag.type == item]
         else:
             return [tag for tag in self.tags if tag.name == item]
 
-    def __contains__(self, item: str) -> bool:  # type: ignore[override]
+    def __contains__(self, item: object) -> bool:
+        if not isinstance(item, str):
+            return False
         if item.isupper() and len(item) == 4:
             for tag in self.tags:
                 if item == tag.type:
@@ -234,6 +285,6 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.tag_types})"
 
-    def set_path(self, path: Union[Path, str]) -> None:
+    def set_path(self, path: Path | str) -> None:
         tag = self.get_tag("PPTH")
         tag.set(path)

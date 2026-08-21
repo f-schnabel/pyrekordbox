@@ -3,10 +3,11 @@
 
 import logging
 import xml.etree.ElementTree as xml
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, IntEnum
-from typing import Any, Dict, List, Tuple, Union
+from enum import IntEnum, StrEnum
+from typing import Any, cast
 
 from dateutil.relativedelta import relativedelta  # noqa
 from sqlalchemy import and_, not_, or_
@@ -44,7 +45,7 @@ class Operator(IntEnum):
     ENDS_WITH = 11
 
 
-class Property(str, Enum):
+class Property(StrEnum):
     ARTIST = "artist"
     ALBUM = "album"
     ALBUM_ARTIST = "albumArtist"
@@ -98,7 +99,7 @@ _DATE_OPS = [
 ]
 
 # Defines the valid operators for each property
-VALID_OPS: Dict[str, Any] = {
+VALID_OPS: dict[str, Any] = {
     Property.ARTIST: _STR_OPS,
     Property.ALBUM: _STR_OPS,
     Property.ALBUM_ARTIST: _STR_OPS,
@@ -125,7 +126,7 @@ VALID_OPS: Dict[str, Any] = {
 }
 
 # Defines the column names in the DB for properties that are directly mapped
-PROPERTY_COLUMN_MAP: Dict[str, str] = {
+PROPERTY_COLUMN_MAP: dict[str, str] = {
     Property.ARTIST: "ArtistName",
     Property.ALBUM: "AlbumName",
     Property.ALBUM_ARTIST: "AlbumArtistName",
@@ -151,13 +152,16 @@ PROPERTY_COLUMN_MAP: Dict[str, str] = {
     Property.YEAR: "ReleaseYear",
 }
 
-TYPE_CONVERSION: Dict[str, Any] = {
+type TypeConverter = Callable[[str | int], datetime | int]
+
+
+TYPE_CONVERSION: dict[Property, TypeConverter] = {
     Property.BPM: int,
-    Property.STOCK_DATE: lambda x: datetime.strptime(x, "%Y-%m-%d"),
-    Property.DATE_CREATED: lambda x: datetime.strptime(x, "%Y-%m-%d"),
+    Property.STOCK_DATE: lambda x: datetime.strptime(cast(str, x), "%Y-%m-%d"),
+    Property.DATE_CREATED: lambda x: datetime.strptime(cast(str, x), "%Y-%m-%d"),
     Property.COUNTER: int,
     Property.RATING: int,
-    Property.DATE_RELEASED: lambda x: datetime.strptime(x, "%Y-%m-%d"),
+    Property.DATE_RELEASED: lambda x: datetime.strptime(cast(str, x), "%Y-%m-%d"),
     Property.DURATION: int,
     Property.YEAR: int,
 }
@@ -169,24 +173,19 @@ PROPERTIES = [str(p.value) for p in list(Property)]  # noqa
 class Condition:
     """Dataclass for a smart playlist condition."""
 
-    property: str
+    property: Property
     operator: int
     unit: str
-    value_left: Union[str, int]
-    value_right: Union[str, int]
+    value_left: str | int
+    value_right: str | int
 
     def __post_init__(self) -> None:
         if self.property not in PROPERTIES:
-            raise ValueError(
-                f"Invalid property: '{self.property}'! Supported properties: {PROPERTIES}"
-            )
+            raise ValueError(f"Invalid property: '{self.property}'! Supported properties: {PROPERTIES}")
 
         valid_ops = VALID_OPS[self.property]
         if self.operator not in valid_ops:
-            raise ValueError(
-                f"Invalid operator '{self.operator}' for '{self.property}', "
-                f"must be one of {valid_ops}"
-            )
+            raise ValueError(f"Invalid operator '{self.operator}' for '{self.property}', must be one of {valid_ops}")
 
         if self.operator == Operator.IN_RANGE:
             if not self.value_right:
@@ -203,10 +202,10 @@ def right_bitshift(x: int, nbit: int = 32) -> int:
     return int(x + 2**nbit)
 
 
-def _get_condition_values(cond: Condition) -> Tuple[Any, Any]:
-    val_left = cond.value_left
-    val_right = cond.value_right
-    func = None
+def _get_condition_values(cond: Condition) -> tuple[Any, Any]:
+    val_left: str | int | datetime | None = cond.value_left
+    val_right: str | int | datetime | None = cond.value_right
+    func: TypeConverter | None = None
     if cond.operator in (Operator.IN_LAST, Operator.NOT_IN_LAST):
         func = int
     elif cond.property in TYPE_CONVERSION:
@@ -214,15 +213,15 @@ def _get_condition_values(cond: Condition) -> Tuple[Any, Any]:
 
     if func is not None:
         if val_left != "":
-            val_left = func(val_left)
+            val_left = func(cond.value_left)
         if val_right != "":
             try:
-                val_right = func(val_right)
+                val_right = func(cond.value_right)
             except ValueError:
                 pass
 
     if val_left == "":
-        val_left = None  # type: ignore
+        val_left = None
 
     return val_left, val_right
 
@@ -231,19 +230,21 @@ class SmartList:
     """Rekordbox smart playlist XML handler."""
 
     def __init__(self, logical_operator: int = LogicalOperator.ALL, auto_update: int = 0):
-        self.playlist_id: Union[int, str] = ""
+        self.playlist_id: int | str = ""
         self.logical_operator: int = int(logical_operator)
         self.auto_update: int = auto_update
-        self.conditions: List[Condition] = list()
+        self.conditions: list[Condition] = list()
 
     def parse(self, source: str) -> None:
         """Parse the XML source of a smart playlist."""
         tree = xml.ElementTree(xml.fromstring(source))
         root = tree.getroot()
+        if root is None:
+            raise ValueError("Smart playlist XML has no root element")
         conditions = list()
         for child in root.findall("CONDITION"):
             condition = Condition(
-                property=child.attrib["PropertyName"],
+                property=Property(child.attrib["PropertyName"]),
                 operator=int(child.attrib["Operator"]),
                 unit=child.attrib["ValueUnit"],
                 value_left=child.attrib["ValueLeft"],
@@ -298,8 +299,8 @@ class SmartList:
         unit : str, optional
             The unit to use, by default "".
         """
-        if isinstance(prop, Property):
-            prop = str(prop.value)
+        if isinstance(prop, str):
+            prop = Property(prop)
         cond = Condition(prop, int(operator), unit, value_left, value_right)
         self.conditions.append(cond)
 

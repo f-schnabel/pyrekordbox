@@ -21,17 +21,17 @@ jobs:
         uses: fkirc/skip-duplicate-actions@master
         with:
           paths_ignore: '[
-          "docs/**",
-          ".github/**",
-          ".resources/**",
-          "logos/**",
-          "README.md",
-          "CHANGELOG.md",
-          "CONTRIBUTING.md",
-          ".pre-commit-config.yaml",
-          ".readthedocs.yaml",
-          "pyproject.toml"
-          ]'
+            "docs/**",
+            ".github/**",
+            ".resources/**",
+            "logos/**",
+            "README.md",
+            "CHANGELOG.md",
+            "CONTRIBUTING.md",
+            ".pre-commit-config.yaml",
+            ".readthedocs.yaml",
+            "pyproject.toml"
+            ]'
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
 
@@ -43,7 +43,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
-        python-version: ["3.8", "3.13"]  # check oldest and latest supported version
+        python-version: ["3.12", "3.14"]  # check oldest and latest supported version
         other-os: [true]
 
     runs-on: ${{ matrix.os }}
@@ -53,12 +53,12 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         cache: "pip" # caching pip dependencies
@@ -80,3 +80,29 @@ jobs:
       with:
         env_vars: OS,PYTHON
         verbose: True
+
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project and quality tools
+        run: pip install ".[test]" mypy ruff ty
+
+      - name: Ruff
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Mypy
+        run: mypy pyrekordbox
+
+      - name: ty
+        run: ty check pyrekordbox
