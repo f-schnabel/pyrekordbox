@@ -1199,6 +1199,19 @@ def test_add_content(db):
         db.add_content(path)
 
 
+def test_add_content_with_multiple_devices(db):
+    selected_device = db.get_device().first()
+    assert selected_device is not None
+    device = models.DjmdDevice.create(ID="test-device", MasterDBID="test", Name="Test")
+    db.add(device)
+    db.flush()
+
+    path = os.path.join(TEST_ROOT, "empty.mp3")
+    content = db.add_content(path, Title="Test")
+
+    assert content.DeviceID == selected_device.ID
+
+
 def test_get_anlz_paths():
     content = DB.get_content().first()
 

@@ -7,16 +7,10 @@ import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any, Protocol
 
+from sqlalchemy.orm import Query
 from sqlalchemy.orm.exc import ObjectDeletedError
-
-if TYPE_CHECKING:
-    from sqlalchemy.orm import Query
-
-    from .database import MasterDatabase
-    from .models import AgentRegistry
-
 
 Instances = Any
 RegistryUpdateItem = tuple[Instances, str, str, Any]
@@ -24,7 +18,26 @@ RegistryUpdateItem = tuple[Instances, str, str, Any]
 logger = logging.getLogger(__name__)
 
 
-class RekordboxAgentRegistry:
+class _AgentRegistry(Protocol):
+    str_1: str
+    text_1: str
+    int_1: int
+    date_1: datetime
+
+
+class _MasterDatabase[T: _AgentRegistry](Protocol):
+    @property
+    def no_autoflush(self) -> Any:
+        pass
+
+    def get_agent_registry(self, **kwargs: Any) -> Query[T]:
+        pass
+
+    def flush(self) -> None:
+        pass
+
+
+class RekordboxAgentRegistry[T: _AgentRegistry]:
     """Rekordbox Agent Registry handler.
 
     The Rekordbox Agent Registry handler is responsible for tracking changes to the
@@ -45,7 +58,7 @@ class RekordboxAgentRegistry:
     __update_history__: list[RegistryUpdateItem] = list()
     __enabled__ = True
 
-    def __init__(self, db: MasterDatabase) -> None:
+    def __init__(self, db: _MasterDatabase[T]) -> None:
         self.db = db
 
     @classmethod
@@ -127,7 +140,7 @@ class RekordboxAgentRegistry:
 
     @classmethod
     @contextmanager
-    def disabled(cls) -> Iterator[type[RekordboxAgentRegistry]]:
+    def disabled(cls) -> Iterator[type[RekordboxAgentRegistry[Any]]]:
         """Context manager to temporarily disable the tracking of database changes.
 
         Examples
@@ -146,7 +159,7 @@ class RekordboxAgentRegistry:
         if enabled:
             cls.enable_tracking()
 
-    def get_registries(self) -> Query[AgentRegistry]:
+    def get_registries(self) -> Query[T]:
         """Returns all agent registries.
 
         Returns
@@ -155,7 +168,7 @@ class RekordboxAgentRegistry:
         """
         return self.db.get_agent_registry()
 
-    def get_registry(self, key: str) -> AgentRegistry:
+    def get_registry(self, key: str) -> T:
         """Returns the agent registry with the given key.
 
         Parameters
@@ -181,7 +194,7 @@ class RekordboxAgentRegistry:
         -------
         value : str
         """
-        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key).one()
+        reg = self.db.get_agent_registry(registry_id=key).one()
         return reg.str_1
 
     def get_text(self, key: str) -> str:
@@ -196,7 +209,7 @@ class RekordboxAgentRegistry:
         -------
         value : str
         """
-        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key).one()
+        reg = self.db.get_agent_registry(registry_id=key).one()
         return reg.text_1
 
     def get_int(self, key: str) -> int:
@@ -211,7 +224,7 @@ class RekordboxAgentRegistry:
         -------
         value : int
         """
-        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key).one()
+        reg = self.db.get_agent_registry(registry_id=key).one()
         return reg.int_1
 
     def get_date(self, key: str) -> datetime:
@@ -226,7 +239,7 @@ class RekordboxAgentRegistry:
         -------
         value : datetime.datetime
         """
-        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key).one()
+        reg = self.db.get_agent_registry(registry_id=key).one()
         return reg.date_1
 
     def set_string(self, key: str, value: str) -> None:
@@ -279,7 +292,7 @@ class RekordboxAgentRegistry:
 
     def get_local_update_count(self) -> int:
         """Returns the current global local USN (unique sequence number)."""
-        reg: AgentRegistry = self.db.get_agent_registry(registry_id="localUpdateCount").one()
+        reg = self.db.get_agent_registry(registry_id="localUpdateCount").one()
         return reg.int_1
 
     def set_local_update_count(self, value: int) -> None:
@@ -290,7 +303,7 @@ class RekordboxAgentRegistry:
         value : int
             The new USN value.
         """
-        reg: AgentRegistry = self.db.get_agent_registry(registry_id="localUpdateCount").one()
+        reg = self.db.get_agent_registry(registry_id="localUpdateCount").one()
         reg.int_1 = value
 
     def increment_local_update_count(self, num: int = 1) -> int:
@@ -308,7 +321,7 @@ class RekordboxAgentRegistry:
         """
         if not isinstance(num, int) or num < 1:
             raise ValueError("The USN can only be increment by a positive integer!")
-        reg: AgentRegistry = self.db.get_agent_registry(registry_id="localUpdateCount").one()
+        reg = self.db.get_agent_registry(registry_id="localUpdateCount").one()
         reg.int_1 = reg.int_1 + num
         return reg.int_1
 

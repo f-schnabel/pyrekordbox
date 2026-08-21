@@ -1829,7 +1829,9 @@ class MasterDatabase:
         uuid = str(uuid4())
         content_link = self.get_menu_items(Name="TRACK").one()
         date_created = datetime.date.today()
-        device = self.get_device().one()
+        device = self.get_device().first()
+        if device is None:
+            raise RuntimeError("No device found in database")
         file_name_l = path.name
         file_size = path.stat().st_size
 
