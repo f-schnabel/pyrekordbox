@@ -12,7 +12,7 @@ References
 
 from construct import Int8ub, Int16ub, Int32ub, PaddedString, Int32sb, StopIf
 from construct import Const, Array, Padding, Bytes
-from construct import Default, Enum, GreedyRange, Struct, Switch, this
+from construct import Default, Enum, Struct, Switch, this
 
 
 # -- Beat Grid Tag (PQTZ) --------------------------------------------------------------
