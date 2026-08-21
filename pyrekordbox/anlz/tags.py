@@ -182,11 +182,12 @@ class PQTZAnlzTag(AbstractAnlzTag):
     def get_times(self) -> npt.NDArray[np.float64]:
         return np.array([entry.time / 1000 for entry in self.content.entries], dtype=np.float64)
 
-    def set(self,
-            beats: Sequence[int] | npt.NDArray[np.floating],
-            bpms: Sequence[float] | npt.NDArray[np.floating],
-            times: Sequence[float] | npt.NDArray[np.floating]
-        ) -> None:
+    def set(
+        self,
+        beats: Sequence[int] | npt.NDArray[np.floating],
+        bpms: Sequence[float] | npt.NDArray[np.floating],
+        times: Sequence[float] | npt.NDArray[np.floating],
+    ) -> None:
         n = len(self.content.entries)
         n_beats = len(beats)
         n_bpms = len(bpms)
