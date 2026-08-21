@@ -131,7 +131,7 @@ def test_rebuild():
         for path in files.values():
             file = anlz.AnlzFile.parse_file(path)
             data = file.build()
-            assert len(data) == file.file_header.len_file
+            assert file.file_header and len(data) == file.file_header.len_file
             _ = anlz.AnlzFile.parse(data)
 
 

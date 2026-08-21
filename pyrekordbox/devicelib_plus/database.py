@@ -62,8 +62,7 @@ def _rename_id(kwargs: dict[str, Any], name: str) -> dict[str, Any]:
 def _parse_query_result[T: models.Base](query: Query[T], id_column: str, kwargs: dict[str, Any]) -> ParsedQuery[T]:
     if id_column in kwargs:
         try:
-            result: T = query.one()
-            return result
+            return query.one()
         except NoResultFound:
             return None
     return query

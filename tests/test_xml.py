@@ -13,7 +13,7 @@ XML5 = os.path.join(TEST_ROOT, "rekordbox 5", "database.xml")
 XML6 = os.path.join(TEST_ROOT, "rekordbox 6", "database.xml")
 
 
-V5_TRACK_INFOS = [
+V5_TRACK_INFOS = (
     {
         "TrackID": 1,
         "Name": "NOISE",
@@ -176,7 +176,7 @@ V5_TRACK_INFOS = [
         "Label": "Loopmasters",
         "Mix": "",
     },
-]
+)
 
 V6_TRACK_INFOS = [
     {
@@ -359,7 +359,7 @@ TEMPOS = [
     ],
 ]
 
-POSITION_MARKS = [
+POSITION_MARKS = (
     [
         {"Name": "", "Type": "cue", "Start": 0.025, "Num": -1},
         {"Name": "", "Type": "cue", "Start": 15.025, "Num": -1},
@@ -372,7 +372,7 @@ POSITION_MARKS = [
         {"Name": "", "Type": "cue", "Start": 32.025, "Num": -1},
         {"Name": "", "Type": "cue", "Start": 48.026, "Num": -1},
     ],
-]
+)
 
 
 def test_track_attribs_v5():
@@ -383,7 +383,9 @@ def test_track_attribs_v5():
             info = V5_TRACK_INFOS[i]
             value = track[attr]
             if attr == "Location":
-                assert os.path.normpath(value) == os.path.normpath(info[attr])
+                expected = info[attr]
+                assert isinstance(expected, str)
+                assert os.path.normpath(value) == os.path.normpath(expected)
             elif attr in info:
                 assert value == info[attr]
             else:
@@ -398,7 +400,9 @@ def test_track_attribs_v6():
             info = V6_TRACK_INFOS[i]
             value = track[attr]
             if attr == "Location":
-                assert os.path.normpath(value) == os.path.normpath(info[attr])
+                expected = info[attr]
+                assert isinstance(expected, str)
+                assert os.path.normpath(value) == os.path.normpath(expected)
             elif attr in info:
                 assert value == info[attr]
             else:
@@ -465,7 +469,9 @@ def test_add_track():
     xml = RekordboxXml()
     track1 = xml.add_track("C:/path/to/file1.wav")
 
-    raw_location = os.path.normpath(track1._element.attrib["Location"])
+    element = track1._element
+    assert element is not None
+    raw_location = os.path.normpath(element.attrib["Location"])
     assert track1.TrackID == 1
     assert raw_location == os.path.normpath("file:/localhost/C:/path/to/file1.wav")
     assert track1.Location == os.path.normpath("C:/path/to/file1.wav")
@@ -605,8 +611,11 @@ def test_playlist_entries():
     playlist = xml.get_playlist("Playlist1")
     key_type = playlist.key_type
     for key in playlist.get_tracks():
-        kwargs = {key_type: key}
-        xml.get_track(**kwargs)
+        if key_type == "TrackID":
+            xml.get_track(TrackID=key)
+        else:
+            assert isinstance(key, str)
+            xml.get_track(Location=key)
 
 
 def test_add_playlist():
@@ -653,7 +662,7 @@ def test_update_playlist_entries():
 
     playlist.add_track(0)
     assert playlist.entries == 1
-    assert playlist.get_track(0) == 0
+    assert playlist.get_track("0") == 0
 
     playlist.add_track(1)
     assert playlist.entries == 2

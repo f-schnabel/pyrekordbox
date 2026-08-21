@@ -52,12 +52,14 @@ def db():
 
 def test_open_rekordbox_database():
     db = MasterDatabase(UNLOCKED, unlock=False)
+    assert db.session
     db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table';"))
     db.close()
 
 
 def test_unlock_rekordbox_database():
     db = MasterDatabase(LOCKED, unlock=True)
+    assert db.session
     db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table';"))
     db.close()
 
@@ -1213,7 +1215,7 @@ def test_add_content_with_multiple_devices(db):
 
 
 def test_get_anlz_paths():
-    content = DB.get_content().first()
+    content = DB.get_content().one()
 
     anlz_dir = str(DB.get_anlz_dir(content)).replace("\\", "/")
     expected = r"share/PIONEER/USBANLZ/735/e8b81-e69b-41ad-80f8-9c0d7613b96d"

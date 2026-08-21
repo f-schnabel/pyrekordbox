@@ -88,7 +88,7 @@ def _is_valid_key(k: str) -> bool:
     return not RE_INVALID_KEY.match(k)
 
 
-class SettingsFile(MutableMapping):  # type: ignore[type-arg]
+class SettingsFile(MutableMapping[str, str]):
     """Base class for the Rekordbox My-Setting file handler.
 
     The base class implements the getters and setter defined by the keys and

@@ -182,7 +182,11 @@ class PQTZAnlzTag(AbstractAnlzTag):
     def get_times(self) -> npt.NDArray[np.float64]:
         return np.array([entry.time / 1000 for entry in self.content.entries], dtype=np.float64)
 
-    def set(self, beats: Sequence[int], bpms: Sequence[float], times: Sequence[float]) -> None:
+    def set(self,
+            beats: Sequence[int] | npt.NDArray[np.floating],
+            bpms: Sequence[float] | npt.NDArray[np.floating],
+            times: Sequence[float] | npt.NDArray[np.floating]
+        ) -> None:
         n = len(self.content.entries)
         n_beats = len(beats)
         n_bpms = len(bpms)
@@ -200,7 +204,7 @@ class PQTZAnlzTag(AbstractAnlzTag):
             data = {"beat": int(beat), "tempo": int(100 * bpm), "time": int(1000 * t)}
             self.content.entries[i].update(data)
 
-    def set_beats(self, beats: Sequence[int]) -> None:
+    def set_beats(self, beats: Sequence[int] | npt.NDArray[np.floating]) -> None:
         n = len(self.content.entries)
         n_new = len(beats)
         if n_new != n:
@@ -209,7 +213,7 @@ class PQTZAnlzTag(AbstractAnlzTag):
         for i, beat in enumerate(beats):
             self.content.entries[i].beat = beat
 
-    def set_bpms(self, bpms: Sequence[float]) -> None:
+    def set_bpms(self, bpms: Sequence[float] | npt.NDArray[np.floating]) -> None:
         n = len(self.content.entries)
         n_new = len(bpms)
         if n_new != n:
@@ -218,7 +222,7 @@ class PQTZAnlzTag(AbstractAnlzTag):
         for i, bpm in enumerate(bpms):
             self.content.entries[i].tempo = int(bpm * 100)
 
-    def set_times(self, times: Sequence[float]) -> None:
+    def set_times(self, times: Sequence[float] | npt.NDArray[np.floating]) -> None:
         n = len(self.content.entries)
         n_new = len(times)
         if n_new != n:

@@ -43,6 +43,9 @@ test = [
     "pytest>=6.2.0",
     "pytest-cov",
 ]
+dev = [
+    "mypy"
+]
 
 [dependency-groups]
 dev = [
