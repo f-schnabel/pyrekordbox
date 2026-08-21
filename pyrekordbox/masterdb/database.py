@@ -7,7 +7,7 @@ import secrets
 from collections.abc import Callable
 from pathlib import Path
 from types import TracebackType
-from typing import Any
+from typing import Any, overload
 from uuid import uuid4
 
 from sqlalchemy import MetaData, create_engine, event, or_, select
@@ -402,33 +402,27 @@ class MasterDatabase:
 
     def get_active_censor(self, **kwargs: Any) -> Query[models.DjmdActiveCensor]:
         """Creates a filtered query for the ``DjmdActiveCensor`` table."""
-        query = self.session.query(models.DjmdActiveCensor).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdActiveCensor).filter_by(**kwargs)
 
     def get_album(self, **kwargs: Any) -> Query[models.DjmdAlbum]:
         """Creates a filtered query for the ``DjmdAlbum`` table."""
-        query = self.session.query(models.DjmdAlbum).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdAlbum).filter_by(**kwargs)
 
     def get_artist(self, **kwargs: Any) -> Query[models.DjmdArtist]:
         """Creates a filtered query for the ``DjmdArtist`` table."""
-        query = self.session.query(models.DjmdArtist).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdArtist).filter_by(**kwargs)
 
     def get_category(self, **kwargs: Any) -> Query[models.DjmdCategory]:
         """Creates a filtered query for the ``DjmdCategory`` table."""
-        query = self.session.query(models.DjmdCategory).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdCategory).filter_by(**kwargs)
 
     def get_color(self, **kwargs: Any) -> Query[models.DjmdColor]:
         """Creates a filtered query for the ``DjmdColor`` table."""
-        query = self.session.query(models.DjmdColor).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdColor).filter_by(**kwargs)
 
     def get_content(self, **kwargs: Any) -> Query[models.DjmdContent]:
         """Creates a filtered query for the ``DjmdContent`` table."""
-        query = self.session.query(models.DjmdContent).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdContent).filter_by(**kwargs)
 
     # noinspection PyUnresolvedReferences
     def search_content(self, text: str) -> list[DjmdContent]:
@@ -490,78 +484,72 @@ class MasterDatabase:
 
     def get_cue(self, **kwargs: Any) -> Query[models.DjmdCue]:
         """Creates a filtered query for the ``DjmdCue`` table."""
-        query = self.session.query(models.DjmdCue).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdCue).filter_by(**kwargs)
 
     def get_device(self, **kwargs: Any) -> Query[models.DjmdDevice]:
         """Creates a filtered query for the ``DjmdDevice`` table."""
-        query = self.session.query(models.DjmdDevice).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdDevice).filter_by(**kwargs)
 
     def get_genre(self, **kwargs: Any) -> Query[models.DjmdGenre]:
         """Creates a filtered query for the ``DjmdGenre`` table."""
-        query = self.session.query(models.DjmdGenre).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdGenre).filter_by(**kwargs)
 
     def get_history(self, **kwargs: Any) -> Query[models.DjmdHistory]:
         """Creates a filtered query for the ``DjmdHistory`` table."""
-        query = self.session.query(models.DjmdHistory).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdHistory).filter_by(**kwargs)
 
     def get_history_songs(self, **kwargs: Any) -> Query[models.DjmdSongHistory]:
         """Creates a filtered query for the ``DjmdSongHistory`` table."""
-        query = self.session.query(models.DjmdSongHistory).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdSongHistory).filter_by(**kwargs)
 
     def get_hot_cue_banklist(self, **kwargs: Any) -> Query[models.DjmdHotCueBanklist]:
         """Creates a filtered query for the ``DjmdHotCueBanklist`` table."""
-        query = self.session.query(models.DjmdHotCueBanklist).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdHotCueBanklist).filter_by(**kwargs)
 
     def get_hot_cue_banklist_songs(self, **kwargs: Any) -> Query[models.DjmdSongHotCueBanklist]:
         """Creates a filtered query for the ``DjmdSongHotCueBanklist`` table."""
-        query = self.session.query(models.DjmdSongHotCueBanklist).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdSongHotCueBanklist).filter_by(**kwargs)
 
     def get_key(self, **kwargs: Any) -> Query[models.DjmdKey]:
         """Creates a filtered query for the ``DjmdKey`` table."""
-        query = self.session.query(models.DjmdKey).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdKey).filter_by(**kwargs)
 
     def get_label(self, **kwargs: Any) -> Query[models.DjmdLabel]:
         """Creates a filtered query for the ``DjmdLabel`` table."""
-        query = self.session.query(models.DjmdLabel).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdLabel).filter_by(**kwargs)
 
     def get_menu_items(self, **kwargs: Any) -> Query[models.DjmdMenuItems]:
         """Creates a filtered query for the ``DjmdMenuItems`` table."""
-        query = self.session.query(models.DjmdMenuItems).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdMenuItems).filter_by(**kwargs)
 
     def get_mixer_param(self, **kwargs: Any) -> Query[models.DjmdMixerParam]:
         """Creates a filtered query for the ``DjmdMixerParam`` table."""
-        query = self.session.query(models.DjmdMixerParam).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdMixerParam).filter_by(**kwargs)
 
     def get_my_tag(self, **kwargs: Any) -> Query[models.DjmdMyTag]:
         """Creates a filtered query for the ``DjmdMyTag`` table."""
-        query = self.session.query(models.DjmdMyTag).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdMyTag).filter_by(**kwargs)
 
     def get_my_tag_songs(self, **kwargs: Any) -> Query[models.DjmdSongMyTag]:
         """Creates a filtered query for the ``DjmdSongMyTag`` table."""
-        query = self.session.query(models.DjmdSongMyTag).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdSongMyTag).filter_by(**kwargs)
 
     def get_playlist(self, **kwargs: Any) -> Query[models.DjmdPlaylist]:
         """Creates a filtered query for the ``DjmdPlaylist`` table."""
-        query = self.session.query(models.DjmdPlaylist).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdPlaylist).filter_by(**kwargs)
 
     def get_playlist_songs(self, **kwargs: Any) -> Query[models.DjmdSongPlaylist]:
         """Creates a filtered query for the ``DjmdSongPlaylist`` table."""
-        query = self.session.query(models.DjmdSongPlaylist).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdSongPlaylist).filter_by(**kwargs)
+
+    @overload
+    def get_playlist_contents(self, playlist: PlaylistLike) -> Query[DjmdContent]: ...
+
+    @overload
+    def get_playlist_contents[T](self, playlist: PlaylistLike, entity: type[T], /) -> Query[T]: ...
+
+    @overload
+    def get_playlist_contents(self, playlist: PlaylistLike, *entities: Any) -> Query[Any]: ...
 
     def get_playlist_contents(self, playlist: PlaylistLike, *entities: Any) -> Query[Any]:
         """Return the contents of a regular or smart playlist.
@@ -622,83 +610,67 @@ class MasterDatabase:
 
     def get_property(self, **kwargs: Any) -> Query[models.DjmdProperty]:
         """Creates a filtered query for the ``DjmdProperty`` table."""
-        query = self.session.query(models.DjmdProperty).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdProperty).filter_by(**kwargs)
 
     def get_related_tracks(self, **kwargs: Any) -> Query[models.DjmdRelatedTracks]:
         """Creates a filtered query for the ``DjmdRelatedTracks`` table."""
-        query = self.session.query(models.DjmdRelatedTracks).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdRelatedTracks).filter_by(**kwargs)
 
     def get_related_tracks_songs(self, **kwargs: Any) -> Query[models.DjmdSongRelatedTracks]:
         """Creates a filtered query for the ``DjmdSongRelatedTracks`` table."""
-        query = self.session.query(models.DjmdSongRelatedTracks).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdSongRelatedTracks).filter_by(**kwargs)
 
     def get_sampler(self, **kwargs: Any) -> Query[models.DjmdSampler]:
         """Creates a filtered query for the ``DjmdSampler`` table."""
-        query = self.session.query(models.DjmdSampler).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdSampler).filter_by(**kwargs)
 
     def get_sampler_songs(self, **kwargs: Any) -> Query[models.DjmdSongSampler]:
         """Creates a filtered query for the ``DjmdSongSampler`` table."""
-        query = self.session.query(models.DjmdSongSampler).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdSongSampler).filter_by(**kwargs)
 
     def get_tag_list_songs(self, **kwargs: Any) -> Query[models.DjmdSongTagList]:
         """Creates a filtered query for the ``DjmdSongTagList`` table."""
-        query = self.session.query(models.DjmdSongTagList).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdSongTagList).filter_by(**kwargs)
 
     def get_sort(self, **kwargs: Any) -> Query[models.DjmdSort]:
         """Creates a filtered query for the ``DjmdSort`` table."""
-        query = self.session.query(models.DjmdSort).filter_by(**kwargs)
-        return query
+        return self.session.query(models.DjmdSort).filter_by(**kwargs)
 
     def get_agent_registry(self, **kwargs: Any) -> Query[models.AgentRegistry]:
         """Creates a filtered query for the ``AgentRegistry`` table."""
-        query = self.session.query(models.AgentRegistry).filter_by(**kwargs)
-        return query
+        return self.session.query(models.AgentRegistry).filter_by(**kwargs)
 
     def get_cloud_agent_registry(self, **kwargs: Any) -> Query[models.CloudAgentRegistry]:
         """Creates a filtered query for the ``CloudAgentRegistry`` table."""
-        query = self.session.query(models.CloudAgentRegistry).filter_by(**kwargs)
-        return query
+        return self.session.query(models.CloudAgentRegistry).filter_by(**kwargs)
 
     def get_content_active_censor(self, **kwargs: Any) -> Query[models.ContentActiveCensor]:
         """Creates a filtered query for the ``ContentActiveCensor`` table."""
-        query = self.session.query(models.ContentActiveCensor).filter_by(**kwargs)
-        return query
+        return self.session.query(models.ContentActiveCensor).filter_by(**kwargs)
 
     def get_content_cue(self, **kwargs: Any) -> Query[models.ContentCue]:
         """Creates a filtered query for the ``ContentCue`` table."""
-        query = self.session.query(models.ContentCue).filter_by(**kwargs)
-        return query
+        return self.session.query(models.ContentCue).filter_by(**kwargs)
 
     def get_content_file(self, **kwargs: Any) -> Query[models.ContentFile]:
         """Creates a filtered query for the ``ContentFile`` table."""
-        query = self.session.query(models.ContentFile).filter_by(**kwargs)
-        return query
+        return self.session.query(models.ContentFile).filter_by(**kwargs)
 
     def get_hot_cue_banklist_cue(self, **kwargs: Any) -> Query[models.HotCueBanklistCue]:
         """Creates a filtered query for the ``HotCueBanklistCue`` table."""
-        query = self.session.query(models.HotCueBanklistCue).filter_by(**kwargs)
-        return query
+        return self.session.query(models.HotCueBanklistCue).filter_by(**kwargs)
 
     def get_image_file(self, **kwargs: Any) -> Query[models.ImageFile]:
         """Creates a filtered query for the ``ImageFile`` table."""
-        query = self.session.query(models.ImageFile).filter_by(**kwargs)
-        return query
+        return self.session.query(models.ImageFile).filter_by(**kwargs)
 
     def get_setting_file(self, **kwargs: Any) -> Query[models.SettingFile]:
         """Creates a filtered query for the ``SettingFile`` table."""
-        query = self.session.query(models.SettingFile).filter_by(**kwargs)
-        return query
+        return self.session.query(models.SettingFile).filter_by(**kwargs)
 
     def get_uuid_map(self, **kwargs: Any) -> Query[models.UuidIDMap]:
         """Creates a filtered query for the ``UuidIDMap`` table."""
-        query = self.session.query(models.UuidIDMap).filter_by(**kwargs)
-        return query
+        return self.session.query(models.UuidIDMap).filter_by(**kwargs)
 
     # -- Database updates --------------------------------------------------------------
 

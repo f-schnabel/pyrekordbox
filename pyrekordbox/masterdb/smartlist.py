@@ -3,10 +3,11 @@
 
 import logging
 import xml.etree.ElementTree as xml
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any
+from typing import Any, cast
 
 from dateutil.relativedelta import relativedelta  # noqa
 from sqlalchemy import and_, not_, or_
@@ -151,13 +152,16 @@ PROPERTY_COLUMN_MAP: dict[str, str] = {
     Property.YEAR: "ReleaseYear",
 }
 
-TYPE_CONVERSION: dict[str, Any] = {
+type TypeConverter = Callable[[str | int], datetime | int]
+
+
+TYPE_CONVERSION: dict[Property, TypeConverter] = {
     Property.BPM: int,
-    Property.STOCK_DATE: lambda x: datetime.strptime(x, "%Y-%m-%d"),
-    Property.DATE_CREATED: lambda x: datetime.strptime(x, "%Y-%m-%d"),
+    Property.STOCK_DATE: lambda x: datetime.strptime(cast(str, x), "%Y-%m-%d"),
+    Property.DATE_CREATED: lambda x: datetime.strptime(cast(str, x), "%Y-%m-%d"),
     Property.COUNTER: int,
     Property.RATING: int,
-    Property.DATE_RELEASED: lambda x: datetime.strptime(x, "%Y-%m-%d"),
+    Property.DATE_RELEASED: lambda x: datetime.strptime(cast(str, x), "%Y-%m-%d"),
     Property.DURATION: int,
     Property.YEAR: int,
 }
@@ -169,7 +173,7 @@ PROPERTIES = [str(p.value) for p in list(Property)]  # noqa
 class Condition:
     """Dataclass for a smart playlist condition."""
 
-    property: str
+    property: Property
     operator: int
     unit: str
     value_left: str | int
@@ -199,9 +203,9 @@ def right_bitshift(x: int, nbit: int = 32) -> int:
 
 
 def _get_condition_values(cond: Condition) -> tuple[Any, Any]:
-    val_left: Any = cond.value_left
-    val_right: Any = cond.value_right
-    func = None
+    val_left: str | int | datetime | None = cond.value_left
+    val_right: str | int | datetime | None = cond.value_right
+    func: TypeConverter | None = None
     if cond.operator in (Operator.IN_LAST, Operator.NOT_IN_LAST):
         func = int
     elif cond.property in TYPE_CONVERSION:
@@ -209,10 +213,10 @@ def _get_condition_values(cond: Condition) -> tuple[Any, Any]:
 
     if func is not None:
         if val_left != "":
-            val_left = func(val_left)
+            val_left = func(cond.value_left)
         if val_right != "":
             try:
-                val_right = func(val_right)
+                val_right = func(cond.value_right)
             except ValueError:
                 pass
 
@@ -240,7 +244,7 @@ class SmartList:
         conditions = list()
         for child in root.findall("CONDITION"):
             condition = Condition(
-                property=child.attrib["PropertyName"],
+                property=Property(child.attrib["PropertyName"]),
                 operator=int(child.attrib["Operator"]),
                 unit=child.attrib["ValueUnit"],
                 value_left=child.attrib["ValueLeft"],
@@ -295,8 +299,8 @@ class SmartList:
         unit : str, optional
             The unit to use, by default "".
         """
-        if isinstance(prop, Property):
-            prop = str(prop.value)
+        if isinstance(prop, str):
+            prop = Property(prop)
         cond = Condition(prop, int(operator), unit, value_left, value_right)
         self.conditions.append(cond)
 
