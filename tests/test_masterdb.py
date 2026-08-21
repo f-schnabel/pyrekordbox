@@ -1215,7 +1215,7 @@ def test_add_content_with_multiple_devices(db):
 
 
 def test_get_anlz_paths():
-    content = DB.get_content().one()
+    content = DB.get_content(ID=CID4).one()
 
     anlz_dir = str(DB.get_anlz_dir(content)).replace("\\", "/")
     expected = r"share/PIONEER/USBANLZ/735/e8b81-e69b-41ad-80f8-9c0d7613b96d"
