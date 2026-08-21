@@ -163,7 +163,7 @@ class MasterDatabase:
 
     @property
     def session(self) -> Session:
-        """Return the active SQLAlchemy session."""
+        """Active SQLAlchemy session."""
         if self._session is None:
             raise SessionNotInitializedError()
         return self._session

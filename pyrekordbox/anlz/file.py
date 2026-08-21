@@ -217,42 +217,76 @@ class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag]]):
             fh.write(data)
 
     @overload
-    def get_tag(self, key: Literal["PQTZ"]) -> PQTZAnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PQT2"]) -> PQT2AnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PCOB"]) -> PCOBAnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PCO2"]) -> PCO2AnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PPTH"]) -> PPTHAnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PVBR"]) -> PVBRAnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PVDI"]) -> PVDIAnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PVB2"]) -> PVB2AnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PSSI"]) -> PSSIAnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PWAV"]) -> PWAVAnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PWV2"]) -> PWV2AnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PWV3"]) -> PWV3AnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PWV4"]) -> PWV4AnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PWV5"]) -> PWV5AnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PWV6"]) -> PWV6AnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PWV7"]) -> PWV7AnlzTag: ...
-    @overload
-    def get_tag(self, key: Literal["PWVC"]) -> PWVCAnlzTag: ...
+    def get_tag(self, key: Literal["PQTZ"]) -> PQTZAnlzTag:
+        pass
 
     @overload
-    def get_tag(self, key: str) -> AbstractAnlzTag: ...
+    def get_tag(self, key: Literal["PQT2"]) -> PQT2AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PCOB"]) -> PCOBAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PCO2"]) -> PCO2AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PPTH"]) -> PPTHAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PVBR"]) -> PVBRAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PVDI"]) -> PVDIAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PVB2"]) -> PVB2AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PSSI"]) -> PSSIAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWAV"]) -> PWAVAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV2"]) -> PWV2AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV3"]) -> PWV3AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV4"]) -> PWV4AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV5"]) -> PWV5AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV6"]) -> PWV6AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV7"]) -> PWV7AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWVC"]) -> PWVCAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: str) -> AbstractAnlzTag:
+        pass
 
     def get_tag(self, key: str) -> AbstractAnlzTag:
         return self.__getitem__(key)[0]
