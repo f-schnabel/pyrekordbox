@@ -27,8 +27,6 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import DeclarativeBase, Mapped, backref, mapped_column, relationship
 
-from .registry import RekordboxAgentRegistry
-
 __all__ = [
     "TABLES",
     "PlaylistType",
@@ -196,6 +194,8 @@ class Base(DeclarativeBase):
 
     @classmethod
     def create(cls, **kwargs: Any) -> Self:
+        from .registry import RekordboxAgentRegistry
+
         with RekordboxAgentRegistry.disabled():
             # noinspection PyArgumentList
             self = cls(**kwargs)
@@ -237,6 +237,8 @@ class Base(DeclarativeBase):
 
     # noinspection PyUnresolvedReferences
     def __setattr__(self, key: str, value: Any) -> None:
+        from .registry import RekordboxAgentRegistry
+
         if not key.startswith("_"):
             RekordboxAgentRegistry.on_update(self, key, value)
         super().__setattr__(key, value)

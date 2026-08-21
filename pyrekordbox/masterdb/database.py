@@ -543,13 +543,16 @@ class MasterDatabase:
         return self.session.query(models.DjmdSongPlaylist).filter_by(**kwargs)
 
     @overload
-    def get_playlist_contents(self, playlist: PlaylistLike) -> Query[DjmdContent]: ...
+    def get_playlist_contents(self, playlist: PlaylistLike) -> Query[DjmdContent]:
+        pass
 
     @overload
-    def get_playlist_contents[T](self, playlist: PlaylistLike, entity: type[T], /) -> Query[T]: ...
+    def get_playlist_contents[T](self, playlist: PlaylistLike, entity: type[T], /) -> Query[T]:
+        pass
 
     @overload
-    def get_playlist_contents(self, playlist: PlaylistLike, *entities: Any) -> Query[Any]: ...
+    def get_playlist_contents(self, playlist: PlaylistLike, *entities: Any) -> Query[Any]:
+        pass
 
     def get_playlist_contents(self, playlist: PlaylistLike, *entities: Any) -> Query[Any]:
         """Return the contents of a regular or smart playlist.

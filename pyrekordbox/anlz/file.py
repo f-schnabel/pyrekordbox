@@ -2,7 +2,7 @@
 # Date:   2023-02-01
 
 import logging
-from collections.abc import Iterator, Mapping
+from collections import abc
 from pathlib import Path
 from typing import Any, Literal, overload, override
 
@@ -33,7 +33,7 @@ class BuildFileLengthError(Exception):
         )
 
 
-class AnlzFile(Mapping[str, list[AbstractAnlzTag]]):
+class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag]]):
     """Rekordbox `ANLZnnnn.xxx` binary file handler."""
 
     def __init__(self) -> None:
@@ -206,25 +206,32 @@ class AnlzFile(Mapping[str, list[AbstractAnlzTag]]):
             fh.write(data)
 
     @overload
-    def get_tag(self, key: Literal["PQTZ", "beat_grid"]) -> PQTZAnlzTag: ...
+    def get_tag(self, key: Literal["PQTZ", "beat_grid"]) -> PQTZAnlzTag:
+        pass
 
     @overload
-    def get_tag(self, key: Literal["PQT2", "beat_grid2"]) -> PQT2AnlzTag: ...
+    def get_tag(self, key: Literal["PQT2", "beat_grid2"]) -> PQT2AnlzTag:
+        pass
 
     @overload
-    def get_tag(self, key: Literal["PPTH", "path"]) -> PPTHAnlzTag: ...
+    def get_tag(self, key: Literal["PPTH", "path"]) -> PPTHAnlzTag:
+        pass
 
     @overload
-    def get_tag(self, key: Literal["PVBR", "vbr"]) -> PVBRAnlzTag: ...
+    def get_tag(self, key: Literal["PVBR", "vbr"]) -> PVBRAnlzTag:
+        pass
 
     @overload
-    def get_tag(self, key: Literal["PVDI", "vocal_detection"]) -> PVDIAnlzTag: ...
+    def get_tag(self, key: Literal["PVDI", "vocal_detection"]) -> PVDIAnlzTag:
+        pass
 
     @overload
-    def get_tag(self, key: Literal["PVB2", "vbr2"]) -> PVB2AnlzTag: ...
+    def get_tag(self, key: Literal["PVB2", "vbr2"]) -> PVB2AnlzTag:
+        pass
 
     @overload
-    def get_tag(self, key: str) -> AbstractAnlzTag: ...
+    def get_tag(self, key: str) -> AbstractAnlzTag:
+        pass
 
     def get_tag(self, key: str) -> AbstractAnlzTag:
         return self.__getitem__(key)[0]
@@ -233,10 +240,12 @@ class AnlzFile(Mapping[str, list[AbstractAnlzTag]]):
         return self.__getitem__(key)
 
     @overload
-    def get(self, key: object, /) -> Any | None: ...
+    def get(self, key: object, /) -> Any | None:
+        pass
 
     @overload
-    def get[T](self, key: object, default: T, /) -> Any | T: ...
+    def get[T](self, key: object, default: T, /) -> Any | T:
+        pass
 
     @override
     def get(self, key: object, default: Any = None, /) -> Any:
@@ -251,7 +260,7 @@ class AnlzFile(Mapping[str, list[AbstractAnlzTag]]):
     def __len__(self) -> int:
         return len(set(self))
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> abc.Iterator[str]:
         return iter(set(tag.type for tag in self.tags))
 
     def __getitem__(self, item: str) -> list[AbstractAnlzTag]:
