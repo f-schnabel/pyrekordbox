@@ -21,17 +21,17 @@ jobs:
         uses: fkirc/skip-duplicate-actions@master
         with:
           paths_ignore: '[
-          "docs/**",
-          ".github/**",
-          ".resources/**",
-          "logos/**",
-          "README.md",
-          "CHANGELOG.md",
-          "CONTRIBUTING.md",
-          ".pre-commit-config.yaml",
-          ".readthedocs.yaml",
-          "pyproject.toml"
-          ]'
+            "docs/**",
+            ".github/**",
+            ".resources/**",
+            "logos/**",
+            "README.md",
+            "CHANGELOG.md",
+            "CONTRIBUTING.md",
+            ".pre-commit-config.yaml",
+            ".readthedocs.yaml",
+            "pyproject.toml"
+            ]'
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
 
@@ -53,12 +53,12 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         cache: "pip" # caching pip dependencies
@@ -84,11 +84,11 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
