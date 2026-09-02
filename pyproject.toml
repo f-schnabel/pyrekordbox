@@ -130,7 +130,6 @@ ignore = [
     "D403", # First word of the first line should be capitalized
     "D404", # First word of the docstring should not be "This"
     "N813", # Camelcase imported as lowercase
-    "N818", # Exception name should be named with an Error suffix
     "ANN401", # Dynamically typed expressions (typing.Any) are disallowed
 ]
 fixable = ["ALL"]  # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -141,7 +140,6 @@ preview = true
 "*__main__.py" = ["ANN"]
 "tests/*" = ["ANN"]
 "rbxml.py" = ["N803"]
-"tables.py" = ["N802", "N815"]
 "models.py" = ["N802", "N815"]
 
 

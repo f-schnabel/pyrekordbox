@@ -31,7 +31,7 @@ __config__ = {
 }
 
 
-class InvalidApplicationDirname(Exception):
+class InvalidApplicationDirnameError(Exception):
     pass
 
 
@@ -240,7 +240,7 @@ def _get_rb_config(
         # `major_version` is compared to the version string
         rb_prog_dir = pioneer_install_dir / application_dirname
         if not rb_prog_dir.exists():
-            raise InvalidApplicationDirname(
+            raise InvalidApplicationDirnameError(
                 f"The supplied application dirname '{application_dirname}' does not exist in '{pioneer_install_dir}'"
             )
         rb_version = _extract_version(application_dirname, major_version)
