@@ -35,7 +35,7 @@ class MasterPlaylistXml:
 
     KEYS = ["Id", "ParentId", "Attributes", "Timestamp", "Lib_Type", "CheckType"]
 
-    def __init__(self, path: str | Path | None = None, db_dir: str | Path | None = None):
+    def __init__(self, path: str | Path | None = None, db_dir: str | Path | None = None) -> None:
         if path is None:
             if db_dir is None:
                 db_dir = get_config("rekordbox6", "db_dir")

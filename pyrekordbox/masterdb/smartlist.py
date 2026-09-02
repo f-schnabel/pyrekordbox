@@ -229,7 +229,7 @@ def _get_condition_values(cond: Condition) -> tuple[Any, Any]:
 class SmartList:
     """Rekordbox smart playlist XML handler."""
 
-    def __init__(self, logical_operator: int = LogicalOperator.ALL, auto_update: int = 0):
+    def __init__(self, logical_operator: int = LogicalOperator.ALL, auto_update: int = 0) -> None:
         self.playlist_id: int | str = ""
         self.logical_operator: int = int(logical_operator)
         self.auto_update: int = auto_update

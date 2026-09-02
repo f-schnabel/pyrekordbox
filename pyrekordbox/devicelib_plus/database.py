@@ -99,7 +99,7 @@ class DeviceLibraryPlus:
     pyrekordbox.device_lib_plus.models: Device Library Plus table definitions
     """
 
-    def __init__(self, path: PathLike | None = None, key: str = "", unlock: bool = True):
+    def __init__(self, path: PathLike | None = None, key: str = "", unlock: bool = True) -> None:
         db_path: Path = Path(str(path))
         # make sure file exists
         if not db_path.exists():
