@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from construct import Struct
+from construct.lib.containers import Container
 
 from . import structs
 
@@ -104,7 +105,7 @@ class SettingsFile(MutableMapping[str, str]):
 
     def __init__(self) -> None:
         super().__init__()
-        self.parsed = None
+        self.parsed: Container[Any] | None = None
         self._items: dict[str, str] = dict()
 
     @classmethod

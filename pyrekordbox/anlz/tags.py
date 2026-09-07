@@ -5,7 +5,7 @@ import logging
 from abc import ABC
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, override
+from typing import Any, cast, override
 
 import numpy as np
 import numpy.typing as npt
@@ -47,7 +47,7 @@ class AbstractAnlzTag(ABC):
     def content(self) -> Container[Any]:
         if self.struct is None:
             raise StructNotInitializedError()
-        return self.struct.content
+        return cast(Container[Any], self.struct.content)
 
     def _check_len_header(self) -> None:
         if self.struct is None:

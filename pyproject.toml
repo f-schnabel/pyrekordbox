@@ -37,6 +37,7 @@ dependencies = [
     "python-dateutil",
     "construct-typing>=0.8.1",
     "types-psutil>=7.2.2.20260827",
+    "types-python-dateutil",
 ]
 
 [project.optional-dependencies]
