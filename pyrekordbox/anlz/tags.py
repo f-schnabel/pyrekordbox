@@ -9,7 +9,6 @@ from typing import Any, override
 
 import numpy as np
 import numpy.typing as npt
-from construct import Struct
 from construct.lib.containers import Container
 
 from . import structs
@@ -25,7 +24,7 @@ class StructNotInitializedError(Exception):
 
 
 class BuildTagLengthError(Exception):
-    def __init__(self, struct: Struct, len_data: int) -> None:
+    def __init__(self, struct: Container[Any], len_data: int) -> None:
         super().__init__(
             f"`len_tag` ({struct.len_tag}) of '{struct.type}' does not match the data-length ({len_data})!"
         )
@@ -40,12 +39,12 @@ class AbstractAnlzTag(ABC):
     LEN_TAG: int = 0  # Expected value of `len_tag`
 
     def __init__(self, tag_data: bytes) -> None:
-        self.struct: Struct | None = None
+        self.struct: Container[Any] | None = None
         if tag_data is not None:
             self.parse(tag_data)
 
     @property
-    def content(self) -> Container:
+    def content(self) -> Container[Any]:
         if self.struct is None:
             raise StructNotInitializedError()
         return self.struct.content
@@ -116,7 +115,7 @@ class AbstractAnlzTag(ABC):
         return str(self.struct)
 
 
-def _parse_wf_preview(tag: structs.AnlzTag) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
+def _parse_wf_preview(tag: Container[Any]) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
     n = len(tag.entries)
     wf = np.zeros(n, dtype=np.int8)
     col = np.zeros(n, dtype=np.int8)
@@ -240,7 +239,7 @@ class PQTZAnlzTag(AbstractAnlzTag):
     def update_len(self) -> None:
         if self.struct is None:
             raise StructNotInitializedError()
-        self.struct.len_tag = self.struct.len_header + 8 * len(self.content.entries)
+        self.struct["len_tag"] = self.struct.len_header + 8 * len(self.content.entries)
 
 
 class PQT2AnlzTag(AbstractAnlzTag):
@@ -367,13 +366,13 @@ class PPTHAnlzTag(AbstractAnlzTag):
     def set(self, path: str | Path) -> None:
         pathstr = str(path).replace("\\", "/")
         len_path = len(pathstr.encode("utf-16-be")) + 2
-        self.content.path = pathstr
-        self.content.len_path = len_path
+        self.content["path"] = pathstr
+        self.content["len_path"] = len_path
 
     def update_len(self) -> None:
         if self.struct is None:
             raise StructNotInitializedError()
-        self.struct.len_tag = self.struct.len_header + self.content.len_path
+        self.struct["len_tag"] = self.struct.len_header + self.content.len_path
 
 
 class PVBRAnlzTag(AbstractAnlzTag):

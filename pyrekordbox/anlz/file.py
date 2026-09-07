@@ -6,7 +6,8 @@ from collections import abc
 from pathlib import Path
 from typing import Any, Literal, overload, override
 
-from construct import Int16ub, Struct
+from construct import Int16ub
+from construct.lib.containers import Container
 
 from . import structs
 from .tags import (
@@ -38,7 +39,7 @@ XOR_MASK = bytearray.fromhex("CB E1 EE FA E5 EE AD EE E9 D2 E9 EB E1 E9 F3 E8 E9
 
 
 class BuildFileLengthError(Exception):
-    def __init__(self, struct: Struct, len_data: int) -> None:
+    def __init__(self, struct: Container[Any], len_data: int) -> None:
         super().__init__(
             f"`len_file` ({struct.len_file}) of '{struct.type}' does not match the data-length ({len_data})!"
         )
@@ -49,7 +50,7 @@ class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag]]):
 
     def __init__(self) -> None:
         self._path: str = ""
-        self.file_header: Struct | None = None
+        self.file_header: Container[Any] | None = None
         self.tags: list[AbstractAnlzTag] = list()
 
     @property
@@ -192,7 +193,7 @@ class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag]]):
             tags_len += tag.struct.len_tag
         # Update file length
         len_file = self.file_header.len_header + tags_len
-        self.file_header.len_file = len_file
+        self.file_header["len_file"] = len_file
 
     def build(self) -> bytes:
         if self.file_header is None:

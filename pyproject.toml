@@ -35,6 +35,8 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "sqlcipher3-wheels",
     "python-dateutil",
+    "construct-typing>=0.8.1",
+    "types-psutil>=7.2.2.20260827",
 ]
 
 [project.optional-dependencies]
@@ -162,7 +164,7 @@ line-ending = "auto"
 [tool.mypy]
 
 strict = true
-ignore_missing_imports = true  # Ignore missing type hints for third-party librarie
+ignore_missing_imports = false  # Ignore missing type hints for third-party librarie
 show_error_codes = true  # Show error codes in the output
 
 exclude = [
@@ -174,12 +176,12 @@ exclude = [
 # Useful fine-tuning overrides to 'strict'
 warn_unused_configs = true
 warn_return_any = true
-no_implicit_optional = false
+no_implicit_optional = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
-disallow_untyped_calls = false  # often useful to allow
-disallow_untyped_decorators = false  # decorators are often tricky
+disallow_untyped_calls = true  # often useful to allow
+disallow_untyped_decorators = true  # decorators are often tricky
 check_untyped_defs = true
 
 plugins = [
