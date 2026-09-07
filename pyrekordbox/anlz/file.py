@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, Literal, overload, override
 
 from construct import Int16ub
-from construct.lib.containers import Container
 
 from . import structs
 from .tags import (
@@ -39,19 +38,19 @@ XOR_MASK = bytearray.fromhex("CB E1 EE FA E5 EE AD EE E9 D2 E9 EB E1 E9 F3 E8 E9
 
 
 class BuildFileLengthError(Exception):
-    def __init__(self, struct: Container[Any], len_data: int) -> None:
+    def __init__(self, struct: structs.AnlzFileHeaderData, len_data: int) -> None:
         super().__init__(
             f"`len_file` ({struct.len_file}) of '{struct.type}' does not match the data-length ({len_data})!"
         )
 
 
-class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag]]):
+class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag[Any]]]):
     """Rekordbox `ANLZnnnn.xxx` binary file handler."""
 
     def __init__(self) -> None:
         self._path: str = ""
-        self.file_header: Container[Any] | None = None
-        self.tags: list[AbstractAnlzTag] = list()
+        self.file_header: structs.AnlzFileHeaderData | None = None
+        self.tags: list[AbstractAnlzTag[Any]] = list()
 
     @property
     def num_tags(self) -> int:
@@ -120,7 +119,7 @@ class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag]]):
         tag_type = file_header.type
         assert tag_type == "PMAI"
 
-        tags: list[AbstractAnlzTag] = []
+        tags: list[AbstractAnlzTag[Any]] = []
         i = file_header.len_header
         while i < file_header.len_file:
             # Get data starting from struct
@@ -286,13 +285,13 @@ class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag]]):
         pass
 
     @overload
-    def get_tag(self, key: str) -> AbstractAnlzTag:
+    def get_tag(self, key: str) -> AbstractAnlzTag[Any]:
         pass
 
-    def get_tag(self, key: str) -> AbstractAnlzTag:
+    def get_tag(self, key: str) -> AbstractAnlzTag[Any]:
         return self.__getitem__(key)[0]
 
-    def getall_tags(self, key: str) -> list[AbstractAnlzTag]:
+    def getall_tags(self, key: str) -> list[AbstractAnlzTag[Any]]:
         return self.__getitem__(key)
 
     @overload
@@ -319,7 +318,7 @@ class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag]]):
     def __iter__(self) -> abc.Iterator[str]:
         return iter(set(tag.type for tag in self.tags))
 
-    def __getitem__(self, item: str) -> list[AbstractAnlzTag]:
+    def __getitem__(self, item: str) -> list[AbstractAnlzTag[Any]]:
         if item.isupper() and len(item) == 4:
             return [tag for tag in self.tags if tag.type == item]
         else:

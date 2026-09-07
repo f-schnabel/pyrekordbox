@@ -344,21 +344,23 @@ class SmartList:
                     comp = getattr(DjmdContent, colum_name).endswith(val_left)
                 elif cond.operator == Operator.IN_LAST:
                     now = datetime.now()
+                    offset = int(val_left)
                     if cond.unit == "day":
-                        t0 = now - relativedelta(days=val_left)
+                        t0 = now - relativedelta(days=offset)
                         comp = getattr(DjmdContent, colum_name) > t0
                     elif cond.unit == "month":
-                        t0 = now - relativedelta(months=val_left)
+                        t0 = now - relativedelta(months=offset)
                         comp = getattr(DjmdContent, colum_name).month > t0
                     else:
                         raise ValueError(f"Unknown unit '{cond.unit}'")
                 elif cond.operator == Operator.NOT_IN_LAST:
                     now = datetime.now()
+                    offset = int(val_left)
                     if cond.unit == "day":
-                        t0 = now - relativedelta(days=val_left)
+                        t0 = now - relativedelta(days=offset)
                         comp = getattr(DjmdContent, colum_name) < t0
                     elif cond.unit == "month":
-                        t0 = now - relativedelta(months=val_left)
+                        t0 = now - relativedelta(months=offset)
                         comp = getattr(DjmdContent, colum_name).month < t0
                     else:
                         raise ValueError(f"Unknown unit '{cond.unit}'")

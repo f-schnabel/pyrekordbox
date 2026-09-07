@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2022-10-24
 
@@ -10,50 +9,72 @@ References
    https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html
 """
 
-from construct import Int8ub, Int16ub, Int32ub, PaddedString, Int32sb, StopIf
-from construct import Const, Array, Padding, Bytes
-from construct import Default, Enum, Struct, Switch, this
+from dataclasses import dataclass
+from typing import Any
 
+from construct import (
+    Array,
+    Bytes,
+    Const,
+    Container,
+    Default,
+    Enum,
+    Int8ub,
+    Int16ub,
+    Int32sb,
+    Int32ub,
+    PaddedString,
+    Padding,
+    Struct,
+    Switch,
+    this,
+)
+from construct_typed import DataclassMixin, DataclassStruct, csfield, csfield_const, csfield_noinit
 
 # -- Beat Grid Tag (PQTZ) --------------------------------------------------------------
 
 AnlzQuantizeTick = Struct(
     "beat" / Int16ub,
     "tempo" / Int16ub,
-    "time" / Int32ub  # in ms from start
+    "time" / Int32ub,  # in ms from start
 )
 
+
+@dataclass
+class PQTZContent(DataclassMixin):
+    _padding: None = csfield_noinit(Padding(4))
+    u2: int = csfield_const(Int32ub, 0x80000)
+    entry_count: int = csfield(Int32ub)
+    entries: list[Container[Any]] = csfield(Array(this.entry_count, AnlzQuantizeTick))
+
+
 # len_header: 24
-PQTZ = Struct(
-    "u1" / Padding(4),
-    "u2" / Const(0x80000, Int32ub),
-    "entry_count" / Int32ub,
-    "entries" / Array(this.entry_count, AnlzQuantizeTick),
-)
+PQTZ = DataclassStruct(PQTZContent)
 
 
 # Extended Beat Grid Tag (PQT2)
 
 AnlzQuantizeTick2 = Struct(
-    "beat" / Int8ub,    # 1 byte
-    "unkown" / Int8ub,    # 1 byte
+    "beat" / Int8ub,  # 1 byte
+    "unkown" / Int8ub,  # 1 byte
 )
 
+
+@dataclass
+class PQT2Content(DataclassMixin):
+    _padding1: None = csfield_noinit(Padding(4))
+    u1: int = csfield(Int32ub)
+    _padding2: None = csfield_noinit(Padding(4))
+    bpm: list[Container[Any]] = csfield(Array(2, AnlzQuantizeTick))
+    entry_count: int = csfield(Int32ub)
+    u3: int = csfield(Int32ub)
+    u4: int = csfield(Int32ub)
+    u5: int = csfield(Int32ub)
+    entries: list[Container[Any]] = csfield(Array(this.entry_count, AnlzQuantizeTick2))
+
+
 # len_header: 56
-PQT2 = Struct(
-    Padding(4), # -> 16
-    "u1" / Int32ub,  # -> 20, observed values: 0x01000002, 0x02000002 (possibly version number)
-    Padding(4), # -> 24
-    "bpm" / Array(2, AnlzQuantizeTick),  # -> 40 (2 * 8 bytes = 16 bytes)
-    "entry_count" / Int32ub,  # -> 44 number of entries of 2 bytes
-    "u3" / Int32ub,  # -> 48
-    "u4" / Int32ub,  # -> 52
-    "u5" / Int32ub,  # -> 56
-    # End header
-    StopIf(this.entry_count == 0),
-    # "entries" / Array(this.entry_count, Bytes(2)),
-    "entries" / Array(this.entry_count, AnlzQuantizeTick2),
-)
+PQT2 = DataclassStruct(PQT2Content)
 
 
 # -- Cue List Tag (PCOB) ---------------------------------------------------------------
@@ -81,14 +102,18 @@ AnlzCuePoint = Struct(
     Padding(16),
 )
 
+
+@dataclass
+class PCOBContent(DataclassMixin):
+    cue_type: int | str = csfield(AnlzTagCueObjectType)
+    unk: int = csfield(Int16ub)
+    count: int = csfield(Int16ub)
+    memory_count: int = csfield(Int32sb)
+    entries: list[Container[Any]] = csfield(Array(this.count, AnlzCuePoint))
+
+
 # len_header: 24
-PCOB = Struct(
-    "cue_type" / AnlzTagCueObjectType,
-    "unk" / Int16ub,
-    "count" / Int16ub,
-    "memory_count" / Int32sb,
-    "entries" / Array(this.count, AnlzCuePoint),
-)
+PCOB = DataclassStruct(PCOBContent)
 
 
 # Extended (nxs2) Cue List Tag (PCO2)
@@ -115,101 +140,133 @@ AnlzCuePoint2 = Struct(
     Padding(this.len_entry - 48 - this.len_comment),
 )
 
+
+@dataclass
+class PCO2Content(DataclassMixin):
+    type: int | str = csfield(AnlzTagCueObjectType)
+    count: int = csfield(Int16ub)
+    unknown: int = csfield(Int16ub)
+    entries: list[Container[Any]] = csfield(Array(this.count, AnlzCuePoint2))
+
+
 # len_header: 20
-PCO2 = Struct(
-    "type" / AnlzTagCueObjectType,
-    "count" / Int16ub,
-    "unknown" / Int16ub,
-    "entries" / Array(this.count, AnlzCuePoint2),
-)
+PCO2 = DataclassStruct(PCO2Content)
 
 
 # -- Path Tag (PPTH) -------------------------------------------------------------------
 
+
+@dataclass
+class PPTHContent(DataclassMixin):
+    len_path: int = csfield(Int32ub)
+    path: str = csfield(PaddedString(this.len_path - 2, encoding="utf-16-be"))
+    _padding: None = csfield_noinit(Padding(2))
+
+
 # len_header: 16
-PPTH = Struct(
-    "len_path" / Int32ub,  # is 0 for some tag types
-    "path" / PaddedString(this.len_path - 2, encoding="utf-16-be"),
-    Padding(2),
-)
+PPTH = DataclassStruct(PPTHContent)
 
 
 # -- VBR Tag (PVBR) --------------------------------------------------------------------
 
+
+@dataclass
+class PVBRContent(DataclassMixin):
+    u1: int = csfield(Int32ub)
+    idx: list[int] = csfield(Array(400, Int32ub))
+    u2: int = csfield(Int32ub)
+
+
 # len_header: 16
-PVBR = Struct(
-    "u1" / Int32ub,
-    "idx" / Array(400, Int32ub),
-    "u2" / Int32ub
-)
+PVBR = DataclassStruct(PVBRContent)
+
+
+@dataclass
+class PVDIContent(DataclassMixin):
+    u1: int = csfield(Int32ub)
+    u2: int = csfield(Int32ub)
+    len_confidence: int = csfield(Int32ub)
+    confidence: bytes = csfield(Bytes(this.len_confidence))
+
 
 # len_header: 24
-PVDI = Struct(
-    "u1" / Int32ub,
-    "u2" / Int32ub,
-    "len_confidence" / Int32ub,
-    "confidence" / Bytes(this.len_confidence),
-)
+PVDI = DataclassStruct(PVDIContent)
+
+
+@dataclass
+class PVB2Content(DataclassMixin):
+    u1: int = csfield(Int32ub)
+    u2: int = csfield(Int32ub)
+    u3: int = csfield(Int32ub)
+    entry_count: int = csfield(Int32ub)
+    entry_size: int = csfield(Int32ub)
+    entries: list[bytes] = csfield(Array(this.entry_count, Bytes(this.entry_size)))
+
 
 # len_header: 32
-PVB2 = Struct(
-    "u1" / Int32ub,
-    "u2" / Int32ub,
-    "u3" / Int32ub,
-    "entry_count" / Int32ub,
-    "entry_size" / Int32ub,
-    "entries" / Array(this.entry_count, Bytes(this.entry_size)),
-)
+PVB2 = DataclassStruct(PVB2Content)
 
 
 # -- (Tiny) Waveform Preview Tag (PWAV / PWV2) -----------------------------------------
 
-# len_header: 20
-PWAV = Struct(
-    "len_preview" / Int32ub,  # is 0 for some tag types
-    "unknown" / Const(0x10000, Int32ub),
-    "entries" / Array(this.len_preview, Int8ub),
-)
+
+@dataclass
+class WaveformPreviewContent(DataclassMixin):
+    len_preview: int = csfield(Int32ub)
+    unknown: int = csfield_const(Int32ub, 0x10000)
+    entries: list[int] = csfield(Array(this.len_preview, Int8ub))
+
 
 # len_header: 20
-PWV2 = Struct(
-    "len_preview" / Int32ub,  # is 0 for some tag types
-    "unknown" / Const(0x10000, Int32ub),
-    "entries" / Array(this.len_preview, Int8ub),
-)
+PWAV = DataclassStruct(WaveformPreviewContent)
+
+# len_header: 20
+PWV2 = DataclassStruct(WaveformPreviewContent)
 
 
 # -- Waveform Detail Tag (PWV3) --------------------------------------------------------
 
+
+@dataclass
+class PWV3Content(DataclassMixin):
+    len_entry_bytes: int = csfield_const(Int32ub, 1)
+    len_entries: int = csfield(Int32ub)
+    u1: int = csfield_const(Int32ub, 0x00960000)
+    entries: list[int] = csfield(Array(this.len_entries, Int8ub))
+
+
 # len_header: 24
-PWV3 = Struct(
-    "len_entry_bytes" / Const(1, Int32ub),
-    "len_entries" / Int32ub,
-    "u1" / Const(0x00960000, Int32ub),
-    "entries" / Array(this.len_entries, Int8ub),
-)
+PWV3 = DataclassStruct(PWV3Content)
 
 
 # -- Waveform Color Preview Tag (PWV4) -------------------------------------------------
 
+
+@dataclass
+class PWV4Content(DataclassMixin):
+    len_entry_bytes: int = csfield_const(Int32ub, 6)
+    len_entries: int = csfield(Int32ub)
+    unknown: int = csfield(Int32ub)
+    entries: bytes = csfield(Bytes(this.len_entry_bytes * this.len_entries))
+
+
 # len_header: 24
-PWV4 = Struct(
-    "len_entry_bytes" / Const(0x00000006, Int32ub),
-    "len_entries" / Int32ub,
-    "unknown" / Int32ub,
-    "entries" / Bytes(this.len_entry_bytes * this.len_entries),
-)
+PWV4 = DataclassStruct(PWV4Content)
 
 
 # -- Waveform Color Detail Tag (PWV5) --------------------------------------------------
 
+
+@dataclass
+class PWV5Content(DataclassMixin):
+    len_entry_bytes: int = csfield_const(Int32ub, 2)
+    len_entries: int = csfield(Int32ub)
+    unknown: int = csfield(Int32ub)
+    entries: list[int] = csfield(Array(this.len_entries, Int16ub))
+
+
 # len_header: 24
-PWV5 = Struct(
-    "len_entry_bytes" / Const(0x00000002, Int32ub),
-    "len_entries" / Int32ub,
-    "unknown" / Int32ub,
-    "entries" / Array(this.len_entries, Int16ub),
-)
+PWV5 = DataclassStruct(PWV5Content)
 
 # -- Song Structure Tag (PSSI) ---------------------------------------------------------
 
@@ -233,85 +290,130 @@ SongStructureEntry = Struct(
     "beat_fill" / Int16ub,
 )
 
+
+@dataclass
+class PSSIContent(DataclassMixin):
+    len_entry_bytes: int = csfield_const(Int32ub, 24)
+    len_entries: int = csfield(Int16ub)
+    mood: int = csfield(Int16ub)
+    u1: bytes = csfield(Bytes(6))
+    end_beat: int = csfield(Int16ub)
+    u2: bytes = csfield(Bytes(2))
+    bank: int = csfield(Int8ub)
+    u3: bytes = csfield(Bytes(1))
+    entries: list[Container[Any]] = csfield(Array(this.len_entries, SongStructureEntry))
+
+
 # len_header: 32
-PSSI = Struct(
-    "len_entry_bytes" /  Const(24, Int32ub),
-    "len_entries" / Int16ub,
-    "mood" / Int16ub,
-    "u1" / Bytes(6),
-    "end_beat" / Int16ub,
-    "u2" / Bytes(2),
-    "bank" / Int8ub,
-    "u3" / Bytes(1),
-    "entries" / Array(this.len_entries, SongStructureEntry),
-)
+PSSI = DataclassStruct(PSSIContent)
 
 # -- PWV6 ------------------------------------------------------------------------------
 
+
+@dataclass
+class PWV6Content(DataclassMixin):
+    len_entry_bytes: int = csfield_const(Int32ub, 3)
+    len_entries: int = csfield(Int32ub)
+    entries: bytes = csfield(Bytes(this.len_entry_bytes * this.len_entries))
+
+
 # len_header: 20
-PWV6 = Struct(
-    "len_entry_bytes" /  Const(0x00000003, Int32ub),
-    "len_entries" / Int32ub,
-    "entries" /  Bytes(this.len_entry_bytes * this.len_entries),
-)
+PWV6 = DataclassStruct(PWV6Content)
 
 # -- PWV7 ------------------------------------------------------------------------------
 
+
+@dataclass
+class PWV7Content(DataclassMixin):
+    len_entry_bytes: int = csfield_const(Int32ub, 3)
+    len_entries: int = csfield(Int32ub)
+    unknown: int = csfield_const(Int32ub, 0x00960000)
+    entries: bytes = csfield(Bytes(this.len_entry_bytes * this.len_entries))
+
+
 # len_header: 24
-PWV7 = Struct(
-    "len_entry_bytes" /  Const(0x00000003, Int32ub),
-    "len_entries" / Int32ub,
-    "unknown" / Const(0x00960000, Int32ub),
-    "entries" / Bytes(this.len_entry_bytes * this.len_entries),
-)
+PWV7 = DataclassStruct(PWV7Content)
 
 # -- PWVC ------------------------------------------------------------------------------
 
+
+@dataclass
+class PWVCContent(DataclassMixin):
+    unknown: int = csfield(Int16ub)
+    data: list[int] = csfield(Array(3, Int16ub))
+
+
 # len_header: 14
-PWVC = Struct(
-    "unknown" /  Int16ub,
-    "data" / Array(3, Int16ub)
-)
+PWVC = DataclassStruct(PWVCContent)
 
 
 # -- Main Items ------------------------------------------------------------------------
 
-AnlzFileHeader = Struct(
-    "type" / PaddedString(4, encoding="ascii"),
-    "len_header" / Int32ub,
-    "len_file" / Int32ub,
-    "u1" / Int32ub,
-    "u2" / Int32ub,
-    "u3" / Int32ub,
-    "u4" / Int32ub,
+
+@dataclass
+class AnlzFileHeaderData(DataclassMixin):
+    type: str = csfield(PaddedString(4, encoding="ascii"))
+    len_header: int = csfield(Int32ub)
+    len_file: int = csfield(Int32ub)
+    u1: int = csfield(Int32ub)
+    u2: int = csfield(Int32ub)
+    u3: int = csfield(Int32ub)
+    u4: int = csfield(Int32ub)
+
+
+AnlzFileHeader = DataclassStruct(AnlzFileHeaderData)
+
+type AnlzTagContent = (
+    PQTZContent
+    | PQT2Content
+    | PCOBContent
+    | PCO2Content
+    | PPTHContent
+    | PVBRContent
+    | PVDIContent
+    | PVB2Content
+    | PSSIContent
+    | WaveformPreviewContent
+    | PWV3Content
+    | PWV4Content
+    | PWV5Content
+    | PWV6Content
+    | PWV7Content
+    | PWVCContent
+    | bytes
 )
 
 
-AnlzTag = Struct(
-    "type" / PaddedString(4, encoding="ascii"),
-    "len_header" / Int32ub,
-    "len_tag" / Int32ub,
-    "content" / Switch(
-        this.type,
-        {
-            "PQTZ": PQTZ,
-            "PQT2": PQT2,
-            "PCOB": PCOB,  # seen in both DAT and EXT files
-            "PCO2": PCO2,  # seen in EXT files
-            "PPTH": PPTH,
-            "PVBR": PVBR,
-            "PVDI": PVDI,
-            "PVB2": PVB2,
-            "PSSI": PSSI,  # seen in EXT files
-            "PWAV": PWAV,
-            "PWV2": PWV2,
-            "PWV3": PWV3,  # seen in EXT files
-            "PWV4": PWV4,  # seen in EXT files
-            "PWV5": PWV5,  # seen in EXT files
-            "PWV6": PWV6,  # seen in 2EX files
-            "PWV7": PWV7,  # seen in 2EX files
-            "PWVC": PWVC,  # seen in 2EX files
-        },
-        default=Bytes(this.len_tag - 12),
-    ),
-)
+@dataclass
+class AnlzTagData(DataclassMixin):
+    type: str = csfield(PaddedString(4, encoding="ascii"))
+    len_header: int = csfield(Int32ub)
+    len_tag: int = csfield(Int32ub)
+    content: AnlzTagContent = csfield(
+        Switch(
+            this.type,
+            {
+                "PQTZ": PQTZ,
+                "PQT2": PQT2,
+                "PCOB": PCOB,  # seen in both DAT and EXT files
+                "PCO2": PCO2,  # seen in EXT files
+                "PPTH": PPTH,
+                "PVBR": PVBR,
+                "PVDI": PVDI,
+                "PVB2": PVB2,
+                "PSSI": PSSI,  # seen in EXT files
+                "PWAV": PWAV,
+                "PWV2": PWV2,
+                "PWV3": PWV3,  # seen in EXT files
+                "PWV4": PWV4,  # seen in EXT files
+                "PWV5": PWV5,  # seen in EXT files
+                "PWV6": PWV6,  # seen in 2EX files
+                "PWV7": PWV7,  # seen in 2EX files
+                "PWVC": PWVC,  # seen in 2EX files
+            },
+            default=Bytes(this.len_tag - 12),
+        )
+    )
+
+
+AnlzTag = DataclassStruct(AnlzTagData)

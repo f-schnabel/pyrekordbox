@@ -6,6 +6,7 @@ import struct
 
 import numpy as np
 import pytest
+from construct import ListContainer
 from numpy.testing import assert_equal
 
 from pyrekordbox import anlz
@@ -141,6 +142,59 @@ def test_read_anlz_files():
         assert len(files) == len(anlz_files)
 
 
+def test_tag_contents_are_typed():
+    content_types = {
+        "PQTZ": anlz.structs.PQTZContent,
+        "PQT2": anlz.structs.PQT2Content,
+        "PCOB": anlz.structs.PCOBContent,
+        "PCO2": anlz.structs.PCO2Content,
+        "PPTH": anlz.structs.PPTHContent,
+        "PVBR": anlz.structs.PVBRContent,
+        "PSSI": anlz.structs.PSSIContent,
+        "PWAV": anlz.structs.WaveformPreviewContent,
+        "PWV2": anlz.structs.WaveformPreviewContent,
+        "PWV3": anlz.structs.PWV3Content,
+        "PWV4": anlz.structs.PWV4Content,
+        "PWV5": anlz.structs.PWV5Content,
+        "PWV6": anlz.structs.PWV6Content,
+        "PWV7": anlz.structs.PWV7Content,
+        "PWVC": anlz.structs.PWVCContent,
+    }
+    seen = set()
+    for paths in ANLZ_FILES:
+        for path in paths.values():
+            file = anlz.AnlzFile.parse_file(path)
+            assert isinstance(file.file_header, anlz.structs.AnlzFileHeaderData)
+            for tag in file.tags:
+                assert isinstance(tag.content, content_types[tag.type])
+                seen.add(tag.type)
+
+    assert seen == content_types.keys()
+
+
+def test_pssi_content_is_typed_and_mutable():
+    for paths in ANLZ_FILES:
+        path = paths.get("EXT")
+        if path is None:
+            continue
+        file = anlz.AnlzFile.parse_file(path)
+        if "PSSI" not in file:
+            continue
+
+        pssi = file.get_tag("PSSI")
+        assert isinstance(pssi.content, anlz.structs.PSSIContent)
+        pssi.content.entries = ListContainer(pssi.content.entries)
+        pssi.content.len_entries = len(pssi.content.entries)
+        assert pssi.struct is not None
+        pssi.struct.len_tag = pssi.struct.len_header + pssi.content.len_entry_bytes * len(pssi.content.entries)
+
+        rebuilt = anlz.AnlzFile.parse(file.build()).get_tag("PSSI")
+        assert isinstance(rebuilt.content, anlz.structs.PSSIContent)
+        return
+
+    pytest.fail("No PSSI test fixture found")
+
+
 def test_pvbr_tag_parse():
     file = anlz.AnlzFile.parse(_build_vbr_analysis_file("PVBR"))
     assert file.tag_types == ["PVBR"]
@@ -156,6 +210,7 @@ def test_pvdi_tag_parse(size, caplog):
     file = anlz.AnlzFile.parse(_build_pvdi_analysis_file(confidence))
     assert file.tag_types == ["PVDI"]
     tag = file.get_tag("PVDI")
+    assert isinstance(tag.content, anlz.structs.PVDIContent)
     assert tag.type == "PVDI"
     assert tag.get() == confidence
     assert not caplog.records
@@ -168,6 +223,7 @@ def test_pvb2_tag_parse(caplog):
     file = anlz.AnlzFile.parse(data)
     assert file.tag_types == ["PVB2"]
     tag = file.get_tag("PVB2")
+    assert isinstance(tag.content, anlz.structs.PVB2Content)
     assert tag.type == "PVB2"
     assert tag.get() == entries
     assert not caplog.records
