@@ -16,9 +16,9 @@ from sqlalchemy import (
     Text,
     TypeDecorator,
 )
-from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.associationproxy import AssociationProxy, association_proxy
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import DeclarativeBase, Mapped, backref, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 TABLES = [
     "Album",
@@ -202,23 +202,23 @@ class Album(Base):
     """The ID (primary key) of the table entry."""
     name: Mapped[str] = mapped_column(VARCHAR(255), unique=True)
     """The name of the album."""
-    artist_id: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
+    artist_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the artist of this album."""
-    image_id: Mapped[int] = mapped_column(Integer, ForeignKey("image.image_id"), default=None)
+    image_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("image.image_id"), default=None)
     """The `image_id` of the :class:`Image` entry of the image of this album."""
     isComplation: Mapped[int] = mapped_column(Integer, default=None)
     """The compilation flag of the album."""
     nameForSearch: Mapped[str] = mapped_column(VARCHAR(255), default=None)
     """The search string of the album."""
 
-    artist = relationship("Artist")
+    artist: Mapped["Artist | None"] = relationship()
     """The artist entry of the artist of this album (links to :class:`Artist`)."""
-    artist_name = association_proxy("AlbumArtist", "name")
+    artist_name: AssociationProxy[str | None] = association_proxy("artist", "name")
     """The name of the album artist (:class:`Artist`)."""
 
-    image = relationship("Image")
+    image: Mapped["Image | None"] = relationship()
     """The image of this album (links to :class:`Image`)."""
-    image_path = association_proxy("Image", "path")
+    image_path: AssociationProxy[str | None] = association_proxy("image", "path")
     """The path of the album Image (:class:`Image`)"""
 
     def __repr__(self) -> str:
@@ -250,16 +250,16 @@ class Category(Base):
 
     category_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     """The ID (primary key) of the table entry."""
-    menuItem_id: Mapped[int] = mapped_column(Integer, ForeignKey("menuItem.menuItem_id"), default=None)
+    menuItem_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("menuItem.menuItem_id"), default=None)
     """The `menuItem_id` of the :class:`MenuItem` entry of the menu item of the category."""
     sequenceNo: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence number of the category used for sorting."""
     isVisible: Mapped[int] = mapped_column(Integer, default=None)
     """The visibility flag of the category."""
 
-    menuItem = relationship("MenuItem")
+    menuItem: Mapped["MenuItem | None"] = relationship()
     """The menu item of the category. (links to :class:`MenuItem`)."""
-    menuItem_name = association_proxy("AlbumArtist", "name")
+    menuItem_name: AssociationProxy[str | None] = association_proxy("menuItem", "name")
     """The name of the menu item of the category. (:class:`MenuItem`)."""
 
     def __repr__(self) -> str:
@@ -303,27 +303,27 @@ class Content(Base):
     """The track number of the track in the album."""
     discNo: Mapped[int] = mapped_column(Integer, default=None)
     """The disc number of the track in the album."""
-    artist_id_artist: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
+    artist_id_artist: Mapped[int | None] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the artist of this track."""
-    artist_id_remixer: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
+    artist_id_remixer: Mapped[int | None] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the remixer of this track."""
-    artist_id_originalArtist: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
+    artist_id_originalArtist: Mapped[int | None] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the original artist of this track."""
-    artist_id_composer: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
+    artist_id_composer: Mapped[int | None] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the composer of this track."""
-    artist_id_lyricist: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
+    artist_id_lyricist: Mapped[int | None] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the lyricist of this track."""
-    album_id: Mapped[int] = mapped_column(Integer, ForeignKey("album.album_id"), default=None)
+    album_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("album.album_id"), default=None)
     """The `album_id` of the :class:`Album` entry of the album of this track."""
-    genre_id: Mapped[int] = mapped_column(Integer, ForeignKey("genre.genre_id"), default=None)
+    genre_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("genre.genre_id"), default=None)
     """The `genre_id` of the :class:`Genre` entry of the genre of this track."""
-    label_id: Mapped[int] = mapped_column(Integer, ForeignKey("label.label_id"), default=None)
+    label_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("label.label_id"), default=None)
     """The `label_id` of the :class:`Label` entry of the label of this track."""
-    key_id: Mapped[int] = mapped_column(Integer, ForeignKey("key.key_id"), default=None)
+    key_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("key.key_id"), default=None)
     """The `key_id` of the :class:`Key` entry of the key of this track."""
-    color_id: Mapped[int] = mapped_column(Integer, ForeignKey("color.color_id"), default=None)
+    color_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("color.color_id"), default=None)
     """The `color_id` of the :class:`Color` entry of the color of this track."""
-    image_id: Mapped[int] = mapped_column(Integer, ForeignKey("image.image_id"), default=None)
+    image_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("image.image_id"), default=None)
     """The `image_id` of the :class:`Image` entry of the image of this track."""
     djComment: Mapped[str] = mapped_column(VARCHAR(255), default=None)
     """The comment of the track."""
@@ -378,48 +378,48 @@ class Content(Base):
     informationUpdateCount: Mapped[int] = mapped_column(Integer, default=None)
     """The number of times the information of the track was updated."""
 
-    artist = relationship("Artist", foreign_keys=artist_id_artist)
+    artist: Mapped["Artist | None"] = relationship(foreign_keys=artist_id_artist)
     """The artist entry of the track (links to :class:`Artist`)."""
-    remixer = relationship("Artist", foreign_keys=artist_id_remixer)
+    remixer: Mapped["Artist | None"] = relationship(foreign_keys=artist_id_remixer)
     """The remixer entry of the track (links to :class:`Artist`)."""
-    originalArtist = relationship("Artist", foreign_keys=artist_id_originalArtist)
+    originalArtist: Mapped["Artist | None"] = relationship(foreign_keys=artist_id_originalArtist)
     """The original artist entry of the track (links to :class:`Artist`)."""
-    composer = relationship("Artist", foreign_keys=artist_id_composer)
+    composer: Mapped["Artist | None"] = relationship(foreign_keys=artist_id_composer)
     """The composer entry of the track (links to :class:`Artist`)."""
-    lyricist = relationship("Artist", foreign_keys=artist_id_lyricist)
+    lyricist: Mapped["Artist | None"] = relationship(foreign_keys=artist_id_lyricist)
     """The lyricist entry of the track (links to :class:`Artist`)."""
-    album = relationship("Album")
+    album: Mapped["Album | None"] = relationship()
     """The album entry of the track (links to :class:`Album`)."""
-    genre = relationship("Genre")
+    genre: Mapped["Genre | None"] = relationship()
     """The genre entry of the track (links to :class:`Genre`)."""
-    label = relationship("Label")
+    label: Mapped["Label | None"] = relationship()
     """The label entry of the track (links to :class:`Label`)."""
-    key = relationship("Key")
+    key: Mapped["Key | None"] = relationship()
     """The key entry of the track (links to :class:`Key`)."""
-    color = relationship("Color")
+    color: Mapped["Color | None"] = relationship()
     """The color entry of the track (links to :class:`Color`)."""
-    image = relationship("Image")
+    image: Mapped["Image | None"] = relationship()
     """The image entry of the track (links to :class:`Image`)."""
-    cues = relationship("Cue", foreign_keys="Cue.content_id", back_populates="content")
+    cues: Mapped[list["Cue"]] = relationship(foreign_keys="Cue.content_id", back_populates="content")
     """The cues of the track (links to :class:`Cue`)."""
 
-    artist_name = association_proxy("artist", "name")
+    artist_name: AssociationProxy[str | None] = association_proxy("artist", "name")
     """The name of the artist of the track (:class:`Artist`)."""
-    remixer_name = association_proxy("remixer", "name")
+    remixer_name: AssociationProxy[str | None] = association_proxy("remixer", "name")
     """The name of the remixer of the track (:class:`Artist`)."""
-    original_artist_name = association_proxy("originalArtist", "name")
+    original_artist_name: AssociationProxy[str | None] = association_proxy("originalArtist", "name")
     """The name of the original artist of the track (:class:`Artist`)."""
-    composer_name = association_proxy("composer", "name")
+    composer_name: AssociationProxy[str | None] = association_proxy("composer", "name")
     """The name of the composer of the track (:class:`Artist`)."""
-    lyricist_name = association_proxy("lyricist", "name")
+    lyricist_name: AssociationProxy[str | None] = association_proxy("lyricist", "name")
     """The name of the lyricist of the track (:class:`Artist`)."""
-    album_name = association_proxy("album", "name")
+    album_name: AssociationProxy[str | None] = association_proxy("album", "name")
     """The name of the album of the track (:class:`Album`)."""
-    genre_name = association_proxy("genre", "name")
+    genre_name: AssociationProxy[str | None] = association_proxy("genre", "name")
     """The name of the genre of the track (:class:`Genre`)."""
-    label_name = association_proxy("label", "name")
+    label_name: AssociationProxy[str | None] = association_proxy("label", "name")
     """The name of the label of the track (:class:`Label`)."""
-    image_path = association_proxy("image", "path")
+    image_path: AssociationProxy[str | None] = association_proxy("image", "path")
     """The path of the image of the track (:class:`Image`)."""
 
     def __repr__(self) -> str:
@@ -434,7 +434,7 @@ class Cue(Base):
 
     cue_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     """The ID (primary key) of the table entry."""
-    content_id: Mapped[int] = mapped_column(Integer, ForeignKey("content.content_id"), default=None)
+    content_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("content.content_id"), default=None)
     """The `content_id` of the :class:`Content` entry of the content this cue belongs to."""
     kind: Mapped[int] = mapped_column(Integer, default=None)
     """The kind of the cue point (Cue=0, Fade-In=0, Fade-Out=0, Load=3, Loop=4)."""
@@ -477,7 +477,7 @@ class Cue(Base):
     outNumberOfSampleInBlock: Mapped[int] = mapped_column(Integer, default=None)
     """The out point of the cue in number of samples in block."""
 
-    content = relationship("Content")
+    content: Mapped["Content | None"] = relationship()
     """The content this cue belongs to (links to :class:`Content`)."""
 
     def __repr__(self) -> str:
@@ -516,17 +516,18 @@ class History(Base):
     history_id_parent: Mapped[int | None] = mapped_column(Integer, ForeignKey("history.history_id"), default=None)
     """The `history_id` of the parent :class:`History` entry of this history entry."""
 
-    children = relationship(
-        "History",
+    children: Mapped[list["History"]] = relationship(
         foreign_keys=history_id_parent,
-        backref=backref("parent", remote_side=[history_id]),
+        back_populates="parent",
     )
-    """The children of the history playlist (links to :class:`DjmdHistory`).
-    Backrefs to the parent history playlist via :attr:`Parent`.
-    """
-    songs = relationship("HistoryContent", back_populates="history")
+    """The children of the history playlist (links to :class:`History`)."""
+    parent: Mapped["History | None"] = relationship(
+        foreign_keys=history_id_parent, remote_side=[history_id], back_populates="children"
+    )
+    """The parent of the history playlist (links to :class:`History`)."""
+    songs: Mapped[list["HistoryContent"]] = relationship(back_populates="history")
     """The songs in the history playlist (links to :class:`HistoryContent`)."""
-    contents = association_proxy("songs", "content")
+    contents: AssociationProxy[list["Content"]] = association_proxy("songs", "content")
     """The contents in the history playlist (links to :class:`Content`)."""
 
     def __repr__(self) -> str:
@@ -546,9 +547,9 @@ class HistoryContent(Base):
     sequenceNo: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence number of the history content entry used for sorting."""
 
-    history = relationship("History", back_populates="songs")
+    history: Mapped["History"] = relationship(back_populates="songs")
     """The history playlist this entry is in (links to :class:`History`)."""
-    content = relationship("Content")
+    content: Mapped["Content"] = relationship()
     """The content entry of the song (links to :class:`Content`)."""
 
     def __repr__(self) -> str:
@@ -567,26 +568,29 @@ class HotCueBankList(Base):
     """The sequence number of the hot cue bank list entry used for sorting."""
     name: Mapped[str] = mapped_column(VARCHAR(255), default=None)
     """The name of the hot cue bank list."""
-    image_id: Mapped[int] = mapped_column(Integer, ForeignKey("image.image_id"), default=None)
+    image_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("image.image_id"), default=None)
     """The `image_id` of the :class:`Image` entry of the image of this hot cue bank list."""
     attribute: Mapped[int] = mapped_column(Integer, default=None)
     """The attribute of the hot cue bank list."""
-    hotCueBankList_id_parent: Mapped[int] = mapped_column(
+    hotCueBankList_id_parent: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("hotCueBankList.hotCueBankList_id"), default=None
     )
     """The `hotCueBankList_id` of the parent :class:`HotCueBankList` entry."""
 
-    image = relationship("Image")
+    image: Mapped["Image | None"] = relationship()
     """The image of this hot cue bank list (links to :class:`Image`)."""
-    children = relationship(
-        "HotCueBankList",
+    children: Mapped[list["HotCueBankList"]] = relationship(
         foreign_keys=hotCueBankList_id_parent,
-        backref=backref("parent", remote_side=[hotCueBankList_id]),
+        back_populates="parent",
     )
-    """The children of the hot cue bank list (links to :class:`HotCueBankList`).
-    Backrefs to the parent hot cue bank list via :attr:`parent`.
-    """
-    hotCueBankList_cues = relationship("HotCueBankListCue", back_populates="hotCueBankList")
+    """The children of the hot cue bank list (links to :class:`HotCueBankList`)."""
+    parent: Mapped["HotCueBankList | None"] = relationship(
+        foreign_keys=hotCueBankList_id_parent,
+        remote_side=[hotCueBankList_id],
+        back_populates="children",
+    )
+    """The parent of the hot cue bank list (links to :class:`HotCueBankList`)."""
+    hotCueBankList_cues: Mapped[list["HotCueBankListCue"]] = relationship(back_populates="hotCueBankList")
     """The cues in the hot cue bank list (links to :class:`HotCueBankListCue`)."""
 
     def __repr__(self) -> str:
@@ -608,9 +612,9 @@ class HotCueBankListCue(Base):
     sequenceNo: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence number of the hot cue bank list cue entry used for sorting."""
 
-    hotCueBankList = relationship("HotCueBankList")
+    hotCueBankList: Mapped["HotCueBankList"] = relationship()
     """The hot cue bank list this entry is in (links to :class:`HotCueBankList`)."""
-    cue = relationship("Cue")
+    cue: Mapped["Cue"] = relationship()
     """The cue entry of the hot cue bank list (links to :class:`Cue`)."""
 
     def __repr__(self) -> str:
@@ -623,7 +627,7 @@ class Image(Base):
 
     __tablename__ = "image"
 
-    image_id: Mapped[str] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    image_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     """The ID (primary key) of the table entry."""
     path: Mapped[str] = mapped_column(VARCHAR(255), unique=True)
     """The path of the image file."""
@@ -695,15 +699,16 @@ class MyTag(Base):
     """The attribute of the custom tag."""
     myTag_id_parent: Mapped[int | None] = mapped_column(Integer, ForeignKey("myTag.myTag_id"), default=None)
 
-    children = relationship(
-        "MyTag",
+    children: Mapped[list["MyTag"]] = relationship(
         foreign_keys=myTag_id_parent,
-        backref=backref("parent", remote_side=[myTag_id]),
+        back_populates="parent",
     )
-    """The children of the custom tag (links to :class:`MyTag`).
-    Backrefs to the parent custom tag via :attr:`parent`.
-    """
-    myTags = relationship("MyTagContent", back_populates="myTag")
+    """The children of the custom tag (links to :class:`MyTag`)."""
+    parent: Mapped["MyTag | None"] = relationship(
+        foreign_keys=myTag_id_parent, remote_side=[myTag_id], back_populates="children"
+    )
+    """The parent of the custom tag (links to :class:`MyTag`)."""
+    myTags: Mapped[list["MyTagContent"]] = relationship(back_populates="myTag")
     """The my tag content in the custom tag (links to :class:`MyTagContent`)."""
 
     def __repr__(self) -> str:
@@ -721,9 +726,9 @@ class MyTagContent(Base):
     content_id: Mapped[int] = mapped_column(Integer, ForeignKey("content.content_id"), default=None, primary_key=True)
     """The `content_id` of the :class:`Content` entry of the content in this custom tag."""
 
-    myTag = relationship("MyTag", back_populates="myTags")
+    myTag: Mapped["MyTag"] = relationship(back_populates="myTags")
     """The custom tag this entry is in (links to :class:`MyTag`)."""
-    content = relationship("Content")
+    content: Mapped["Content"] = relationship()
     """The content entry of the custom tag (links to :class:`Content`)."""
 
     def __repr__(self) -> str:
@@ -742,24 +747,25 @@ class Playlist(Base):
     """The sequence number of the playlist used for sorting."""
     name: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
     """The name of the playlist."""
-    image_id: Mapped[int] = mapped_column(Integer, ForeignKey("image.image_id"), default=None)
+    image_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("image.image_id"), default=None)
     """The `image_id` of the :class:`Image` entry of the image of this playlist."""
     attribute: Mapped[int] = mapped_column(Integer, default=None)
     """The attribute of the playlist."""
     playlist_id_parent: Mapped[int | None] = mapped_column(Integer, ForeignKey("playlist.playlist_id"), default=None)
     """The `playlist_id` of the parent :class:`Playlist` entry of this playlist."""
 
-    children = relationship(
-        "Playlist",
+    children: Mapped[list["Playlist"]] = relationship(
         foreign_keys=playlist_id_parent,
-        backref=backref("parent", remote_side=[playlist_id]),
+        back_populates="parent",
     )
-    """The children of the playlist (links to :class:`Playlist`).
-    Backrefs to the parent playlist via :attr:`parent`.
-    """
-    songs = relationship("PlaylistContent", back_populates="playlist")
+    """The children of the playlist (links to :class:`Playlist`)."""
+    parent: Mapped["Playlist | None"] = relationship(
+        foreign_keys=playlist_id_parent, remote_side=[playlist_id], back_populates="children"
+    )
+    """The parent of the playlist (links to :class:`Playlist`)."""
+    songs: Mapped[list["PlaylistContent"]] = relationship(back_populates="playlist")
     """The songs in the playlist (links to :class:`PlaylistContent`)."""
-    contents = association_proxy("songs", "content")
+    contents: AssociationProxy[list["Content"]] = association_proxy("songs", "content")
     """The contents in the playlist (links to :class:`Content`)."""
 
     def __repr__(self) -> str:
@@ -779,9 +785,9 @@ class PlaylistContent(Base):
     sequenceNo: Mapped[int] = mapped_column(Integer, nullable=False)
     """The sequence number of the playlist content entry used for sorting."""
 
-    playlist = relationship("Playlist")
+    playlist: Mapped["Playlist"] = relationship()
     """The playlist this entry is in (links to :class:`Playlist`)."""
-    content = relationship("Content")
+    content: Mapped["Content"] = relationship()
     """The content entry of the playlist (links to :class:`Content`)."""
 
     def __repr__(self) -> str:
@@ -826,9 +832,9 @@ class RecommendedLike(Base):
     createdDate: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
     """The date when the recommended like was created."""
 
-    content_1 = relationship("Content", foreign_keys=content_id_1)
+    content_1: Mapped["Content | None"] = relationship(foreign_keys=content_id_1)
     """The first content of the recommended like (links to :class:`Content`)."""
-    content_2 = relationship("Content", foreign_keys=content_id_2)
+    content_2: Mapped["Content | None"] = relationship(foreign_keys=content_id_2)
     """The second content of the recommended like (links to :class:`Content`)."""
 
     def __repr__(self) -> str:
@@ -852,7 +858,7 @@ class Sort(Base):
     isSelectedAsSubColumn: Mapped[int] = mapped_column(Integer, default=None)
     """The selected as sub-column flag of the sort entry."""
 
-    menuItem = relationship("MenuItem")
+    menuItem: Mapped["MenuItem"] = relationship()
     """The menu item of the sort entry (links to :class:`MenuItem`)."""
 
     def __repr__(self) -> str:
