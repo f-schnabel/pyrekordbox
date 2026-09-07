@@ -250,16 +250,16 @@ class Category(Base):
 
     category_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     """The ID (primary key) of the table entry."""
-    menuItem_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("menuItem.menuItem_id"), default=None)
+    menuItem_id: Mapped[int] = mapped_column(Integer, ForeignKey("menuItem.menuItem_id"), default=None)
     """The `menuItem_id` of the :class:`MenuItem` entry of the menu item of the category."""
     sequenceNo: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence number of the category used for sorting."""
     isVisible: Mapped[int] = mapped_column(Integer, default=None)
     """The visibility flag of the category."""
 
-    menuItem: Mapped["MenuItem | None"] = relationship()
+    menuItem: Mapped["MenuItem"] = relationship()
     """The menu item of the category. (links to :class:`MenuItem`)."""
-    menuItem_name: AssociationProxy[str | None] = association_proxy("menuItem", "name")
+    menuItem_name: AssociationProxy[str] = association_proxy("menuItem", "name")
     """The name of the menu item of the category. (:class:`MenuItem`)."""
 
     def __repr__(self) -> str:
@@ -434,7 +434,7 @@ class Cue(Base):
 
     cue_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     """The ID (primary key) of the table entry."""
-    content_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("content.content_id"), default=None)
+    content_id: Mapped[int] = mapped_column(Integer, ForeignKey("content.content_id"), default=None)
     """The `content_id` of the :class:`Content` entry of the content this cue belongs to."""
     kind: Mapped[int] = mapped_column(Integer, default=None)
     """The kind of the cue point (Cue=0, Fade-In=0, Fade-Out=0, Load=3, Loop=4)."""
@@ -477,7 +477,7 @@ class Cue(Base):
     outNumberOfSampleInBlock: Mapped[int] = mapped_column(Integer, default=None)
     """The out point of the cue in number of samples in block."""
 
-    content: Mapped["Content | None"] = relationship()
+    content: Mapped["Content"] = relationship()
     """The content this cue belongs to (links to :class:`Content`)."""
 
     def __repr__(self) -> str:
