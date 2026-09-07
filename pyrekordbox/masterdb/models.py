@@ -25,7 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import DeclarativeBase, Mapped, backref, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from .registry import RekordboxAgentRegistry
 
@@ -395,7 +395,7 @@ class ContentActiveCensor(Base, StatsFull):
     rb_activecensor_count: Mapped[int] = mapped_column(Integer, default=None)
     """The active censor count of the table entry."""
 
-    Content = relationship("DjmdContent")
+    Content: Mapped["DjmdContent"] = relationship()
     """The content entry this censor belongs to (links to :class:`DjmdContent`)."""
 
 
@@ -418,7 +418,7 @@ class ContentCue(Base, StatsFull):
     rb_cue_count: Mapped[int] = mapped_column(Integer, default=None)
     """The cue count of the table entry."""
 
-    Content = relationship("DjmdContent")
+    Content: Mapped["DjmdContent"] = relationship()
     """The content entry this cue belongs to (links to :class:`DjmdContent`)."""
 
 
@@ -463,7 +463,7 @@ class ContentFile(Base, StatsFull):
     rb_file_size_dirty: Mapped[int] = mapped_column(Integer, default=0)
     """The file size dirty flag of the file."""
 
-    Content = relationship("DjmdContent")
+    Content: Mapped["DjmdContent"] = relationship()
     """The content entry this file belongs to (links to :class:`DjmdContent`)."""
 
 
@@ -492,7 +492,7 @@ class DjmdActiveCensor(Base, StatsFull):
     ContentUUID: Mapped[str] = mapped_column(VARCHAR(255), default=None)
     """The UUID of the :class:`DjmdContent` entry this censor belongs to."""
 
-    Content = relationship("DjmdContent", foreign_keys=ContentID, back_populates="ActiveCensors")
+    Content: Mapped["DjmdContent"] = relationship(foreign_keys=ContentID, back_populates="ActiveCensors")
     """The content entry this censor belongs to (links to :class:`DjmdContent`)."""
 
 
@@ -519,7 +519,7 @@ class DjmdAlbum(Base, StatsFull):
     SearchStr: Mapped[str] = mapped_column(VARCHAR(255), default=None)
     """The search string of the album."""
 
-    AlbumArtist = relationship("DjmdArtist")
+    AlbumArtist: Mapped["DjmdArtist"] = relationship()
     """The artist entry of the artist of this album (links to :class:`DjmdArtist`)."""
     AlbumArtistName = association_proxy("AlbumArtist", "Name")
     """The name of the album artist (:class:`DjmdArtist`) of the track."""
@@ -567,7 +567,7 @@ class DjmdCategory(Base, StatsFull):
     InfoOrder: Mapped[int] = mapped_column(Integer, default=None)
     """Information for ordering the categories."""
 
-    MenuItem = relationship("DjmdMenuItems", foreign_keys=MenuItemID)
+    MenuItem: Mapped["DjmdMenuItems"] = relationship(foreign_keys=MenuItemID)
     """The menu item entry of the category (links to :class:`DjmdMenuItems`)."""
 
 
@@ -748,33 +748,33 @@ class DjmdContent(Base, StatsFull):
     SrcLength: Mapped[int] = mapped_column(Integer, default=None)
     """The length of the source of the track."""
 
-    Artist = relationship("DjmdArtist", foreign_keys=ArtistID)
+    Artist: Mapped["DjmdArtist"] = relationship(foreign_keys=ArtistID)
     """The artist entry of the track (links to :class:`DjmdArtists`)."""
-    Album = relationship("DjmdAlbum", foreign_keys=AlbumID)
+    Album: Mapped["DjmdAlbum"] = relationship(foreign_keys=AlbumID)
     """The album entry of the track (links to :class:`DjmdAlbum`)."""
-    Genre = relationship("DjmdGenre", foreign_keys=GenreID)
+    Genre: Mapped["DjmdGenre"] = relationship(foreign_keys=GenreID)
     """The genre entry of the track (links to :class:`DjmdGenre`)."""
-    Remixer = relationship("DjmdArtist", foreign_keys=RemixerID)
+    Remixer: Mapped["DjmdArtist"] = relationship(foreign_keys=RemixerID)
     """The remixer entry of the track (links to :class:`DjmdArtist`)."""
-    Label = relationship("DjmdLabel", foreign_keys=LabelID)
+    Label: Mapped["DjmdLabel"] = relationship(foreign_keys=LabelID)
     """The label entry of the track (links to :class:`DjmdLabel`)."""
-    OrgArtist = relationship("DjmdArtist", foreign_keys=OrgArtistID)
+    OrgArtist: Mapped["DjmdArtist"] = relationship(foreign_keys=OrgArtistID)
     """The original artist entry of the track (links to :class:`DjmdArtist`)."""
-    Key = relationship("DjmdKey", foreign_keys=KeyID)
+    Key: Mapped["DjmdKey"] = relationship(foreign_keys=KeyID)
     """The key entry of the track (links to :class:`DjmdKey`)."""
-    Color = relationship("DjmdColor", foreign_keys=ColorID)
+    Color: Mapped["DjmdColor"] = relationship(foreign_keys=ColorID)
     """The color entry of the track (links to :class:`DjmdColor`)."""
-    Composer = relationship("DjmdArtist", foreign_keys=ComposerID)
+    Composer: Mapped["DjmdArtist"] = relationship(foreign_keys=ComposerID)
     """The composer entry of the track (links to :class:`DjmdArtist`)."""
     AlbumArtist = association_proxy("Album", "AlbumArtist")
     """The album artist entry of the track (links to :class:`DjmdArtist`)."""
-    MyTags = relationship("DjmdSongMyTag", back_populates="Content")
+    MyTags: Mapped[list["DjmdSongMyTag"]] = relationship(back_populates="Content")
     """The my tags of the track (links to :class:`DjmdSongMyTag`)."""
-    Cues = relationship("DjmdCue", foreign_keys="DjmdCue.ContentID", back_populates="Content")
+    Cues: Mapped[list["DjmdCue"]] = relationship(foreign_keys="DjmdCue.ContentID", back_populates="Content")
     """The cues of the track (links to :class:`DjmdCue`)."""
-    ActiveCensors = relationship("DjmdActiveCensor", back_populates="Content")
+    ActiveCensors: Mapped[list["DjmdActiveCensor"]] = relationship(back_populates="Content")
     """The active censors of the track (links to :class:`DjmdActiveCensor`)."""
-    MixerParams = relationship("DjmdMixerParam", back_populates="Content")
+    MixerParams: Mapped[list["DjmdMixerParam"]] = relationship(back_populates="Content")
     """The mixer parameters of the track (links to :class:`DjmdMixerParam`)."""
 
     ArtistName = association_proxy("Artist", "Name")
@@ -858,7 +858,7 @@ class DjmdCue(Base, StatsFull):
     ContentUUID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdContent.UUID"), default=None)
     """The UUID of the content (:class:`DjmdContent`) containing the cue point."""
 
-    Content = relationship("DjmdContent", foreign_keys=ContentID, back_populates="Cues")
+    Content: Mapped["DjmdContent"] = relationship(foreign_keys=ContentID, back_populates="Cues")
     """The content entry of the cue point (links to :class:`DjmdContent`)."""
 
     @property
@@ -925,12 +925,14 @@ class DjmdHistory(Base, StatsFull):
     DateCreated: Mapped[str] = mapped_column(VARCHAR(255), default=None)
     """The date the history playlist was created."""
 
-    Songs = relationship("DjmdSongHistory", back_populates="History")
+    Songs: Mapped[list["DjmdSongHistory"]] = relationship(back_populates="History")
     """The songs in the history playlist (links to :class:`DjmdSongHistory`)."""
-    Children = relationship(
-        "DjmdHistory",
+    Children: Mapped[list["DjmdHistory"]] = relationship(
         foreign_keys=ParentID,
-        backref=backref("Parent", remote_side=[ID]),
+        back_populates="Parent",
+    )
+    Parent: Mapped["DjmdHistory | None"] = relationship(
+        foreign_keys=ParentID, remote_side=[ID], back_populates="Children"
     )
     """The children of the history playlist (links to :class:`DjmdHistory`).
     Backrefs to the parent history playlist via :attr:`Parent`.
@@ -960,9 +962,9 @@ class DjmdSongHistory(Base, StatsFull):
     TrackNo: Mapped[int] = mapped_column(Integer, default=None)
     """The track number of the song in the history playlist."""
 
-    History = relationship("DjmdHistory", back_populates="Songs")
+    History: Mapped["DjmdHistory"] = relationship(back_populates="Songs")
     """The history playlist this song is in (links to :class:`DjmdHistory`)."""
-    Content = relationship("DjmdContent")
+    Content: Mapped["DjmdContent"] = relationship()
     """The content entry of the song (links to :class:`DjmdContent`)."""
 
 
@@ -989,10 +991,12 @@ class DjmdHotCueBanklist(Base, StatsFull):
     ParentID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdHotCueBanklist.ID"), default=None)
     """The ID of the parent hot-cue banklist (:class:`DjmdHotCueBanklist`)."""
 
-    Children = relationship(
-        "DjmdHotCueBanklist",
+    Children: Mapped[list["DjmdHotCueBanklist"]] = relationship(
         foreign_keys=ParentID,
-        backref=backref("Parent", remote_side=[ID]),
+        back_populates="Parent",
+    )
+    Parent: Mapped["DjmdHotCueBanklist | None"] = relationship(
+        foreign_keys=ParentID, remote_side=[ID], back_populates="Children"
     )
     """The children of the hot-cue banklist (links to :class:`DjmdHotCueBanklist`).
     Backrefs to the parent hot-cue banklist via :attr:`Parent`.
@@ -1058,7 +1062,7 @@ class DjmdSongHotCueBanklist(Base, StatsFull):
     HotCueBanklistUUID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdHotCueBanklist.UUID"), default=None)
     """The UUID of the hot-cue banklist (links to :class:`DjmdHotCueBanklist`)."""
 
-    Content = relationship("DjmdContent")
+    Content: Mapped["DjmdContent"] = relationship()
     """The content of the hot-cue (links to :class:`DjmdContent`)."""
 
 
@@ -1134,7 +1138,7 @@ class DjmdMixerParam(Base, StatsFull):
     PeakLow: Mapped[int] = mapped_column(Integer, default=None)
     """The low peak of the mixer parameter."""
 
-    Content = relationship("DjmdContent", back_populates="MixerParams")
+    Content: Mapped["DjmdContent"] = relationship(back_populates="MixerParams")
     """The content this mixer parameters belong to (links to :class:`DjmdContent`)."""
 
     @staticmethod
@@ -1205,9 +1209,12 @@ class DjmdMyTag(Base, StatsFull):
     ParentID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdMyTag.ID"), default=None)
     """The ID of the parent My-Tag list (:class:`DjmdMyTag`)."""
 
-    MyTags = relationship("DjmdSongMyTag", back_populates="MyTag")
+    MyTags: Mapped[list["DjmdSongMyTag"]] = relationship(back_populates="MyTag")
     """The My-Tag items (links to :class:`DjmdSongMyTag`)."""
-    Children = relationship("DjmdMyTag", foreign_keys=ParentID, backref=backref("Parent", remote_side=[ID]))
+    Children: Mapped[list["DjmdMyTag"]] = relationship(foreign_keys=ParentID, back_populates="Parent")
+    Parent: Mapped["DjmdMyTag | None"] = relationship(
+        foreign_keys=ParentID, remote_side=[ID], back_populates="Children"
+    )
     """The child lists of the My-Tag list (links to :class:`DjmdMyTag`).
     Backrefs to the parent list via :attr:`Parent`.
     """
@@ -1236,9 +1243,9 @@ class DjmdSongMyTag(Base, StatsFull):
     TrackNo: Mapped[int] = mapped_column(Integer, default=None)
     """The track number of the My-Tag item (for ordering)."""
 
-    MyTag = relationship("DjmdMyTag", back_populates="MyTags")
+    MyTag: Mapped["DjmdMyTag"] = relationship(back_populates="MyTags")
     """The My-Tag list this item belongs to (links to :class:`DjmdMyTag`)."""
-    Content = relationship("DjmdContent", back_populates="MyTags")
+    Content: Mapped["DjmdContent"] = relationship(back_populates="MyTags")
     """The content this item belongs to (links to :class:`DjmdContent`)."""
 
     MyTagName = association_proxy("MyTag", "Name")
@@ -1270,13 +1277,15 @@ class DjmdPlaylist(Base, StatsFull):
     SmartList: Mapped[str] = mapped_column(Text, default=None)
     """The smart list settings of the playlist."""
 
-    Songs = relationship("DjmdSongPlaylist", back_populates="Playlist", cascade="all, delete")
+    Songs: Mapped[list["DjmdSongPlaylist"]] = relationship(back_populates="Playlist", cascade="all, delete")
     """The contents of the playlist (links to :class:`DjmdSongPlaylist`)."""
-    Children = relationship(
-        "DjmdPlaylist",
+    Children: Mapped[list["DjmdPlaylist"]] = relationship(
         foreign_keys=ParentID,
-        backref=backref("Parent", remote_side=[ID]),
+        back_populates="Parent",
         cascade="all, delete",
+    )
+    Parent: Mapped["DjmdPlaylist | None"] = relationship(
+        foreign_keys=ParentID, remote_side=[ID], back_populates="Children"
     )
     """The child playlists of the playlist (links to :class:`DjmdPlaylist`).
     Backrefs to the parent playlist via :attr:`Parent`.
@@ -1318,9 +1327,9 @@ class DjmdSongPlaylist(Base, StatsFull):
     TrackNo: Mapped[int] = mapped_column(Integer, default=None)
     """The track number of the playlist item (for ordering)."""
 
-    Playlist = relationship("DjmdPlaylist", back_populates="Songs")
+    Playlist: Mapped["DjmdPlaylist"] = relationship(back_populates="Songs")
     """The playlist this item is in (links to :class:`DjmdPlaylist`)."""
-    Content = relationship("DjmdContent")
+    Content: Mapped["DjmdContent"] = relationship()
     """The content this item belongs to (links to :class:`DjmdContent`)."""
 
 
@@ -1347,13 +1356,15 @@ class DjmdRelatedTracks(Base, StatsFull):
     Criteria: Mapped[str] = mapped_column(Text, default=None)
     """The criteria used to determine the items in the related tracks list."""
 
-    Songs = relationship("DjmdSongRelatedTracks", back_populates="RelatedTracks")
+    Songs: Mapped[list["DjmdSongRelatedTracks"]] = relationship(back_populates="RelatedTracks")
     """The contents of the related tracks list
     (links to :class:`DjmdSongRelatedTracks`)."""
-    Children = relationship(
-        "DjmdRelatedTracks",
+    Children: Mapped[list["DjmdRelatedTracks"]] = relationship(
         foreign_keys=ParentID,
-        backref=backref("Parent", remote_side=[ID]),
+        back_populates="Parent",
+    )
+    Parent: Mapped["DjmdRelatedTracks | None"] = relationship(
+        foreign_keys=ParentID, remote_side=[ID], back_populates="Children"
     )
     """The child related tracks lists of the related tracks list
     (links to :class:`DjmdSongRelatedTracks`).
@@ -1385,9 +1396,9 @@ class DjmdSongRelatedTracks(Base, StatsFull):
     TrackNo: Mapped[int] = mapped_column(Integer, default=None)
     """The track number of the related tracks list item (for ordering)."""
 
-    RelatedTracks = relationship("DjmdRelatedTracks", back_populates="Songs")
+    RelatedTracks: Mapped["DjmdRelatedTracks"] = relationship(back_populates="Songs")
     """The related tracks list this item is in (links to :class:`DjmdRelatedTracks`)."""
-    Content = relationship("DjmdContent")
+    Content: Mapped["DjmdContent"] = relationship()
     """The content this item belongs to (links to :class:`DjmdContent`)."""
 
 
@@ -1412,12 +1423,14 @@ class DjmdSampler(Base, StatsFull):
     ParentID: Mapped[str] = mapped_column(VARCHAR(255), ForeignKey("djmdSampler.ID"), default=None)
     """The ID of the parent sampler list (:class:`DjmdSampler`)."""
 
-    Songs = relationship("DjmdSongSampler", back_populates="Sampler")
+    Songs: Mapped[list["DjmdSongSampler"]] = relationship(back_populates="Sampler")
     """The contents of the sampler list (links to :class:`DjmdSongSampler`)."""
-    Children = relationship(
-        "DjmdSampler",
+    Children: Mapped[list["DjmdSampler"]] = relationship(
         foreign_keys=ParentID,
-        backref=backref("Parent", remote_side=[ID]),
+        back_populates="Parent",
+    )
+    Parent: Mapped["DjmdSampler | None"] = relationship(
+        foreign_keys=ParentID, remote_side=[ID], back_populates="Children"
     )
     """The child sampler lists of the sampler list (links to :class:`DjmdSampler`).
     Backrefs to the parent sampler list via :attr:`Parent`.
@@ -1447,9 +1460,9 @@ class DjmdSongSampler(Base, StatsFull):
     TrackNo: Mapped[int] = mapped_column(Integer, default=None)
     """The track number of the sampler list item (for ordering)."""
 
-    Sampler = relationship("DjmdSampler", back_populates="Songs")
+    Sampler: Mapped["DjmdSampler"] = relationship(back_populates="Songs")
     """The sampler list this item is in (links to :class:`DjmdSampler`)."""
-    Content = relationship("DjmdContent")
+    Content: Mapped["DjmdContent"] = relationship()
     """The content this item belongs to (links to :class:`DjmdContent`)."""
 
 
@@ -1465,7 +1478,7 @@ class DjmdSongTagList(Base, StatsFull):
     TrackNo: Mapped[int] = mapped_column(Integer, default=None)
     """The track number of the tag list item (for ordering)."""
 
-    Content = relationship("DjmdContent")
+    Content: Mapped["DjmdContent"] = relationship()
     """The content this item belongs to (links to :class:`DjmdContent`)."""
 
 
@@ -1488,7 +1501,7 @@ class DjmdSort(Base, StatsFull):
     Disable: Mapped[int] = mapped_column(Integer, default=None)
     """Whether the sort list is disabled."""
 
-    MenuItem = relationship("DjmdMenuItems", foreign_keys=MenuItemID)
+    MenuItem: Mapped["DjmdMenuItems"] = relationship(foreign_keys=MenuItemID)
     """The menu item this sort list is in (links to :class:`DjmdMenuItems`)."""
 
 
