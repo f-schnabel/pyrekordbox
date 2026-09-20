@@ -6,6 +6,7 @@ import shutil
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from pytest import mark
@@ -55,6 +56,67 @@ def test_open_rekordbox_database():
     assert db.session
     db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table';"))
     db.close()
+
+
+def test_context_manager_autocommit():
+    db = MasterDatabase(UNLOCKED, unlock=False, autocommit=True)
+    try:
+        with (
+            patch.object(db, "commit") as commit,
+            patch.object(db, "rollback") as rollback,
+            patch.object(db, "close") as close,
+        ):
+            with db as context:
+                assert context is db
+    finally:
+        db.close()
+
+    commit.assert_called_once_with()
+    rollback.assert_not_called()
+    close.assert_called_once_with()
+
+
+def test_context_manager_without_autocommit(db):
+    with (
+        patch.object(db, "commit") as commit,
+        patch.object(db, "rollback") as rollback,
+        patch.object(db, "close") as close,
+    ):
+        with db:
+            pass
+
+    commit.assert_not_called()
+    rollback.assert_not_called()
+    close.assert_called_once_with()
+
+
+def test_context_manager_autocommit_rollback(db):
+    db.autocommit = True
+    with (
+        patch.object(db, "commit") as commit,
+        patch.object(db, "rollback") as rollback,
+        patch.object(db, "close") as close,
+        pytest.raises(RuntimeError, match="failed"),
+    ):
+        with db:
+            raise RuntimeError("failed")
+
+    commit.assert_not_called()
+    rollback.assert_called_once_with()
+    close.assert_called_once_with()
+
+
+def test_context_manager_closes_after_commit_error(db):
+    db.autocommit = True
+    with (
+        patch.object(db, "commit", side_effect=RuntimeError("failed")),
+        patch.object(db, "close") as close,
+        pytest.raises(RuntimeError, match="failed"),
+    ):
+        with db:
+            pass
+
+    close.assert_called_once_with()
 
 
 def test_unlock_rekordbox_database():

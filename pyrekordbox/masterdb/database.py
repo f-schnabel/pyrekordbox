@@ -74,6 +74,9 @@ class MasterDatabase:
     unlock: bool, optional
         Flag if the database needs to be decrypted. Set to False if you are opening
         an unencrypted test database.
+    autocommit : bool, optional
+        If True, using the database as a context manager commits on successful exit
+        and rolls back on exceptional exit. By default, only close the database.
 
     Attributes
     ----------
@@ -100,7 +103,14 @@ class MasterDatabase:
     <DjmdContent(40110712   Title=NOISE)>
     """
 
-    def __init__(self, path: PathLike | None = None, db_dir: PathLike = "", key: str = "", unlock: bool = True) -> None:
+    def __init__(
+        self,
+        path: PathLike | None = None,
+        db_dir: PathLike = "",
+        key: str = "",
+        unlock: bool = True,
+        autocommit: bool = False,
+    ) -> None:
         # get config of latest supported version
         rb_config = get_config("rekordbox7")
         if not rb_config:
@@ -145,6 +155,7 @@ class MasterDatabase:
             raise FileNotFoundError(f"Database directory '{db_directory}' does not exist!")
 
         self.engine = engine
+        self.autocommit = autocommit
         self._session: Session | None = None
 
         self.registry = RekordboxAgentRegistry(self)
@@ -213,7 +224,14 @@ class MasterDatabase:
         value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        self.close()
+        try:
+            if self.autocommit:
+                if type_ is None:
+                    self.commit()
+                else:
+                    self.rollback()
+        finally:
+            self.close()
 
     def register_event(self, identifier: str, fn: Callable[[Any], None]) -> None:
         """Registers a session event callback.
