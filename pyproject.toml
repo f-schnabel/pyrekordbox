@@ -43,6 +43,16 @@ test = [
     "pytest>=6.2.0",
     "pytest-cov",
 ]
+dev = [
+    "mypy"
+]
+
+[dependency-groups]
+dev = [
+    "mypy",
+    "ruff",
+    "ty",
+]
 
 [project.urls]
 Source = "https://github.com/dylanljones/pyrekordbox"
