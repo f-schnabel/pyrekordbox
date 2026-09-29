@@ -3,14 +3,35 @@
 
 import logging
 from collections import abc
-from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, overload, override
 
-from construct import Int16ub, Struct
+from construct import Int16ub
 
 from . import structs
-from .tags import TAGS, AbstractAnlzTag, StructNotInitializedError, UnknownAnlzTag
+from .tags import (
+    TAGS,
+    AbstractAnlzTag,
+    PCO2AnlzTag,
+    PCOBAnlzTag,
+    PPTHAnlzTag,
+    PQT2AnlzTag,
+    PQTZAnlzTag,
+    PSSIAnlzTag,
+    PVB2AnlzTag,
+    PVBRAnlzTag,
+    PVDIAnlzTag,
+    PWAVAnlzTag,
+    PWV2AnlzTag,
+    PWV3AnlzTag,
+    PWV4AnlzTag,
+    PWV5AnlzTag,
+    PWV6AnlzTag,
+    PWV7AnlzTag,
+    PWVCAnlzTag,
+    StructNotInitializedError,
+    UnknownAnlzTag,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,19 +39,19 @@ XOR_MASK = bytearray.fromhex("CB E1 EE FA E5 EE AD EE E9 D2 E9 EB E1 E9 F3 E8 E9
 
 
 class BuildFileLengthError(Exception):
-    def __init__(self, struct: Struct, len_data: int) -> None:
+    def __init__(self, struct: structs.AnlzFileHeaderData, len_data: int) -> None:
         super().__init__(
             f"`len_file` ({struct.len_file}) of '{struct.type}' does not match the data-length ({len_data})!"
         )
 
 
-class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
+class AnlzFile(abc.Mapping[str, list[AbstractAnlzTag[Any]]]):
     """Rekordbox `ANLZnnnn.xxx` binary file handler."""
 
     def __init__(self) -> None:
         self._path: str = ""
-        self.file_header: Struct | None = None
-        self.tags: list[AbstractAnlzTag] = list()
+        self.file_header: structs.AnlzFileHeaderData | None = None
+        self.tags: list[AbstractAnlzTag[Any]] = list()
 
     @property
     def num_tags(self) -> int:
@@ -99,7 +120,7 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
         tag_type = file_header.type
         assert tag_type == "PMAI"
 
-        tags = list()
+        tags: list[AbstractAnlzTag[Any]] = []
         i = file_header.len_header
         while i < file_header.len_file:
             # Get data starting from struct
@@ -176,7 +197,7 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
             tags_len += tag.struct.len_tag
         # Update file length
         len_file = self.file_header.len_header + tags_len
-        self.file_header.len_file = len_file
+        self.file_header["len_file"] = len_file
 
     def build(self) -> bytes:
         if self.file_header is None:
@@ -200,14 +221,98 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
         with open(path, "wb") as fh:
             fh.write(data)
 
-    def get_tag(self, key: str) -> AbstractAnlzTag:
+    @overload
+    def get_tag(self, key: Literal["PQTZ"]) -> PQTZAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PQT2"]) -> PQT2AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PCOB"]) -> PCOBAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PCO2"]) -> PCO2AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PPTH"]) -> PPTHAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PVBR"]) -> PVBRAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PVDI"]) -> PVDIAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PVB2"]) -> PVB2AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PSSI"]) -> PSSIAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWAV"]) -> PWAVAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV2"]) -> PWV2AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV3"]) -> PWV3AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV4"]) -> PWV4AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV5"]) -> PWV5AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV6"]) -> PWV6AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWV7"]) -> PWV7AnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: Literal["PWVC"]) -> PWVCAnlzTag:
+        pass
+
+    @overload
+    def get_tag(self, key: str) -> AbstractAnlzTag[Any]:
+        pass
+
+    def get_tag(self, key: str) -> AbstractAnlzTag[Any]:
         return self.__getitem__(key)[0]
 
-    def getall_tags(self, key: str) -> list[AbstractAnlzTag]:
+    def getall_tags(self, key: str) -> list[AbstractAnlzTag[Any]]:
         return self.__getitem__(key)
 
-    def get(self, key: str) -> Any:  # type: ignore[override]
-        return self.__getitem__(key)[0].get()
+    @overload
+    def get(self, key: object, /) -> Any | None:
+        pass
+
+    @overload
+    def get[T](self, key: object, default: T, /) -> Any | T:
+        pass
+
+    @override
+    def get(self, key: object, default: Any = None, /) -> Any:
+        if not isinstance(key, str):
+            return default
+        tags = self.__getitem__(key)
+        return tags[0].get() if tags else default
 
     def getall(self, key: str) -> list[Any]:
         return [tag.get() for tag in self.__getitem__(key)]
@@ -218,16 +323,18 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
         # ``__len__`` calls back into this method (consistent with ``__iter__``).
         return len(set(tag.type for tag in self.tags))
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> abc.Iterator[str]:
         return iter(set(tag.type for tag in self.tags))
 
-    def __getitem__(self, item: str) -> list[AbstractAnlzTag]:
+    def __getitem__(self, item: str) -> list[AbstractAnlzTag[Any]]:
         if item.isupper() and len(item) == 4:
             return [tag for tag in self.tags if tag.type == item]
         else:
             return [tag for tag in self.tags if tag.name == item]
 
-    def __contains__(self, item: str) -> bool:  # type: ignore[override]
+    def __contains__(self, item: object) -> bool:
+        if not isinstance(item, str):
+            return False
         if item.isupper() and len(item) == 4:
             for tag in self.tags:
                 if item == tag.type:
