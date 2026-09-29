@@ -18,7 +18,7 @@ References
 """
 
 from construct import Int8ul, Int16ul, Int32ul, PaddedString, Const, Padding
-from construct import Enum, Bytes, Struct, Default, Select
+from construct import Enum, Bytes, Struct, Default
 
 
 # -- DjmSettings -----------------------------------------------------------------------

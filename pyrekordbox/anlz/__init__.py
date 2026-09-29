@@ -5,7 +5,7 @@ import re
 from collections.abc import Iterator
 from pathlib import Path
 
-from . import structs
+from . import structs as structs
 from .file import AnlzFile
 
 RE_ANLZ = re.compile("ANLZ[0-9]{4}.(DAT|EXT|2EX)")

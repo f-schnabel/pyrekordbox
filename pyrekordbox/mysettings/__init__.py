@@ -4,13 +4,13 @@
 import re
 from pathlib import Path
 
-from . import structs
+from . import structs as structs
 from .file import (
     FILES,
-    DevSettingFile,
-    DjmMySettingFile,
-    MySetting2File,
-    MySettingFile,
+    DevSettingFile as DevSettingFile,
+    DjmMySettingFile as DjmMySettingFile,
+    MySetting2File as MySetting2File,
+    MySettingFile as MySettingFile,
     SettingsFile,
 )
 
