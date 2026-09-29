@@ -121,7 +121,7 @@ class MasterDatabase:
         key: str = "",
         unlock: bool = True,
         autocommit: bool = False,
-    ):
+    ) -> None:
         # get config of latest supported version
         rb_config = get_config("rekordbox7")
         if not rb_config:
@@ -2301,7 +2301,7 @@ class MasterDatabase:
         dst_metadata = MetaData()
 
         @event.listens_for(src_metadata, "column_reflect")
-        def genericize_datatypes(inspector, tablename, column_dict):  # type: ignore # noqa: ANN202
+        def genericize_datatypes(inspector: Any, tablename: str, column_dict: dict[str, Any]) -> None:
             type_ = column_dict["type"].as_generic(allow_nulltype=True)
             if isinstance(type_, DateTime):
                 type_ = String
@@ -2344,7 +2344,7 @@ class MasterDatabase:
 
 
 class Rekordbox6Database(MasterDatabase):
-    def __init__(self, path: PathLike = None, db_dir: PathLike = "", key: str = "", unlock: bool = True):
+    def __init__(self, path: PathLike = None, db_dir: PathLike = "", key: str = "", unlock: bool = True) -> None:
         warn_deprecated(
             "pyrekordbox.db6.Rekordbox6Database",
             "pyrekordbox.masterdb.MasterDatabase",

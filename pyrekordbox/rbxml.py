@@ -137,7 +137,7 @@ class AbstractElement(abc.Mapping):  # type: ignore[type-arg]
     AbstractElement.set
     """
 
-    def __init__(self, element: xml.Element = None, *args: Any, **kwargs: Any):
+    def __init__(self, element: xml.Element = None, *args: Any, **kwargs: Any) -> None:
         self._element: xml.Element | None = element
         if element is None:
             self._init(*args, **kwargs)
@@ -303,7 +303,7 @@ class Tempo(AbstractElement):
         Metro: str = "4/4",
         Battito: int = 1,
         element: xml.Element = None,
-    ):
+    ) -> None:
         super().__init__(element, parent, Inizio, Bpm, Metro, Battito)
 
     def _init(self, parent: xml.Element, inizio: float, bpm: float, metro: str, battito: int) -> None:
@@ -366,7 +366,7 @@ class PositionMark(AbstractElement):
         End: float = None,
         Num: int = -1,
         element: xml.Element = None,
-    ):
+    ) -> None:
         super().__init__(element, parent, Name, Type, Start, End, Num)
 
     def _init(self, parent: xml.Element, name: str, type_: str, start: float, end: float, num: int) -> None:
@@ -524,7 +524,7 @@ class Track(AbstractElement):
         Location: str | Path = "",
         element: xml.Element = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         self.tempos: list[Tempo] = list()
         self.marks: list[PositionMark] = list()
         super().__init__(element, parent, Location, **kwargs)
@@ -639,7 +639,7 @@ class Node:
     FOLDER = 0
     PLAYLIST = 1
 
-    def __init__(self, parent: xml.Element = None, element: xml.Element = None, **attribs: Any):
+    def __init__(self, parent: xml.Element = None, element: xml.Element = None, **attribs: Any) -> None:
         if element is None:
             if parent is None:
                 raise ValueError("Either parent or element must be given!")
@@ -985,7 +985,7 @@ class RekordboxXml:
         name: str = None,
         version: str = None,
         company: str = None,
-    ):
+    ) -> None:
         self._root: xml.Element | None = None
         self._product: xml.Element | None = None
         self._collection: xml.Element | None = None
