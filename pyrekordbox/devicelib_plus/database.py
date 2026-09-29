@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 BLOB = b"PN_1dH8$oLJY)16j_RvM6qphWw`476>;C1cWmI#se(PG`j}~xAjlufj?`#0i{;=glh(SkW)y0>n?YEiD`l%t("
 
 # Type aliases
-PathLike = str | Path
+type PathLike = str | Path
 type ParsedQuery[T: models.Base] = T | Query[T] | None
 
 # ID column names
@@ -62,8 +62,7 @@ def _rename_id(kwargs: dict[str, Any], name: str) -> dict[str, Any]:
 def _parse_query_result[T: models.Base](query: Query[T], id_column: str, kwargs: dict[str, Any]) -> ParsedQuery[T]:
     if id_column in kwargs:
         try:
-            result: T = query.one()
-            return result
+            return query.one()
         except NoResultFound:
             return None
     return query
@@ -100,7 +99,7 @@ class DeviceLibraryPlus:
     pyrekordbox.device_lib_plus.models: Device Library Plus table definitions
     """
 
-    def __init__(self, path: PathLike = None, key: str = "", unlock: bool = True) -> None:
+    def __init__(self, path: PathLike | None = None, key: str = "", unlock: bool = True) -> None:
         db_path: Path = Path(str(path))
         # make sure file exists
         if not db_path.exists():
@@ -525,7 +524,7 @@ class DeviceLibraryPlus:
         bitrate: int = 0,
         bit_depth: int = 0,
         sampling_rate: int = 0,
-        analysis_path: PathLike = None,
+        analysis_path: PathLike | None = None,
         **kwargs: Any,
     ) -> models.Content:
         """Create a new content entry in the database.
@@ -733,7 +732,7 @@ class DeviceLibraryPlus:
     def add_my_tag(
         self,
         name: str,
-        seq: int = None,
+        seq: int | None = None,
         attribute: int = 0,
         parent_id: int = 0,
     ) -> models.MyTag:
@@ -758,7 +757,7 @@ class DeviceLibraryPlus:
         """
         if seq is None:
             # If no sequence is provided, set it to the next available sequence number
-            seq = self.get_my_tag(parent_id=parent_id).count() + 1
+            seq = self.query(models.MyTag).filter_by(parent_id=parent_id).count() + 1
 
         my_tag = models.MyTag(
             name=name,
@@ -797,9 +796,9 @@ class DeviceLibraryPlus:
         self,
         name: str,
         attribute: int,
-        seq: int = None,
+        seq: int | None = None,
         parent_id: int = 0,
-        image_id: int = None,
+        image_id: int | None = None,
     ) -> models.Playlist:
         """Create a new playlist entry in the database.
 
@@ -825,7 +824,7 @@ class DeviceLibraryPlus:
         """
         if seq is None:
             # If no sequence is provided, set it to the next available sequence number
-            seq = self.get_playlist(playlist_id_parent=parent_id).count() + 1
+            seq = self.query(models.Playlist).filter_by(playlist_id_parent=parent_id).count() + 1
 
         playlist = models.Playlist(
             sequenceNo=seq,
@@ -841,9 +840,9 @@ class DeviceLibraryPlus:
     def add_playlist(
         self,
         name: str,
-        seq: int = None,
+        seq: int | None = None,
         parent_id: int = 0,
-        image_id: int = None,
+        image_id: int | None = None,
     ) -> models.Playlist:
         """Create a new playlist entry in the database.
 
@@ -870,7 +869,7 @@ class DeviceLibraryPlus:
     def add_playlist_folder(
         self,
         name: str,
-        seq: int = None,
+        seq: int | None = None,
         parent_id: int = 0,
     ) -> models.Playlist:
         """Create a new playlist folder entry in the database.
@@ -893,7 +892,7 @@ class DeviceLibraryPlus:
         """
         return self._add_playlist(name, attribute=1, seq=seq, image_id=None, parent_id=parent_id)
 
-    def add_playlist_content(self, playlist_id: int, content_id: int, seq: int = None) -> models.PlaylistContent:
+    def add_playlist_content(self, playlist_id: int, content_id: int, seq: int | None = None) -> models.PlaylistContent:
         """Create a new playlist content entry in the database.
 
         Parameters
@@ -966,7 +965,7 @@ class DeviceLibraryPlus:
         prop = self.get_property().one_or_none()
         if prop is None:
             raise ValueError("No property entry found in the database.")
-        num_contents = self.get_content().count()
+        num_contents = self.query(models.Content).count()
         prop.numberOfContents = num_contents
 
     def add_recommended_like(self, content_id_1: int, content_id_2: int, rating: int) -> models.RecommendedLike:

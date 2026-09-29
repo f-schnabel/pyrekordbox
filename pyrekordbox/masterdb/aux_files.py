@@ -176,11 +176,11 @@ class MasterPlaylistXml:
     def update(
         self,
         playlist_id: str,
-        parent_id: str = None,
-        attribute: int = None,
-        updated_at: datetime = None,
-        lib_type: int = None,
-        check_type: int = None,
+        parent_id: str | None = None,
+        attribute: int | None = None,
+        updated_at: datetime | None = None,
+        lib_type: int | None = None,
+        check_type: int | None = None,
     ) -> None:
         """Updates the element with the PlaylistID used in the `master.db` database.
 
@@ -224,11 +224,11 @@ class MasterPlaylistXml:
         element.attrib.update(attribs)
         self._changed = True
 
-    def to_string(self, indent: str = None) -> str:
+    def to_string(self, indent: str | None = None) -> str:
         text: str = pretty_xml(self.root, indent, encoding="utf-8")
         return text
 
-    def save(self, path: str | Path | None = None, indent: str = None) -> None:
+    def save(self, path: str | Path | None = None, indent: str | None = None) -> None:
         if path is None:
             path = self.path
         path = str(path)

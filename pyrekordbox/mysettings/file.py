@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from construct import Struct
+from construct.lib.containers import Container
 
 from . import structs
 
@@ -88,7 +89,7 @@ def _is_valid_key(k: str) -> bool:
     return not RE_INVALID_KEY.match(k)
 
 
-class SettingsFile(MutableMapping):  # type: ignore[type-arg]
+class SettingsFile(MutableMapping[str, str]):
     """Base class for the Rekordbox My-Setting file handler.
 
     The base class implements the getters and setter defined by the keys and
@@ -104,7 +105,7 @@ class SettingsFile(MutableMapping):  # type: ignore[type-arg]
 
     def __init__(self) -> None:
         super().__init__()
-        self.parsed = None
+        self.parsed: Container[Any] | None = None
         self._items: dict[str, str] = dict()
 
     @classmethod
@@ -177,31 +178,6 @@ class SettingsFile(MutableMapping):  # type: ignore[type-arg]
 
     def __delitem__(self, key: str) -> None:
         del self._items[key]
-
-    def get(self, key: str, default: str = None) -> str | None:  # type: ignore[override]
-        """Returns the value of a setting of the My-Setting file.
-
-        If the key is not found in the My-Setting data, but it is present in the
-        ``defaults`` class dictionary, that default value is used. Otherwise, the
-        parameter ``default`` is used as default value.
-
-        Parameters
-        ----------
-        key : str
-            The key of the setting.
-        default : Any, optional
-            The default value returned if the setting does not exist in the
-            My-Setting file data or the ``defaults`` dictionary.
-
-        Returns
-        -------
-        value : Any
-            The value of the setting.
-        """
-        try:
-            return self.__getitem__(key)
-        except KeyError:
-            return default
 
     def set(self, key: str, value: str) -> None:
         """Sets the value of a setting of the My-Setting file.

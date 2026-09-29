@@ -201,4 +201,4 @@ def test_mysetting_checksum():
             sett = read_mysetting_file(path)
             data = sett.build()
             checksum = compute_checksum(data, sett.struct)
-            assert checksum == sett.parsed.checksum
+            assert sett.parsed and checksum == sett.parsed.checksum

@@ -93,6 +93,7 @@ def get_pioneer_app_dir(path: str | Path | None = None) -> Path:  # pragma: no c
         The path to the Pioneer application data.
     """
     if path is None:
+        app_data: Path
         if sys.platform == "win32":
             # Windows: located in /Users/user/AppData/Roaming/
             app_data = Path(os.environ["AppData"])
@@ -409,7 +410,7 @@ def update_config(
         logger.info(e)
 
 
-def get_config(section: str, key: str = None) -> Any:
+def get_config(section: str, key: str | None = None) -> Any:
     """Gets a section or value of the pyrekordbox configuration.
 
     Parameters

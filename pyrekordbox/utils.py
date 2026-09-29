@@ -126,7 +126,7 @@ def get_rekordbox_agent_pid(raise_exec: bool = False) -> int:
     return get_process_id("rekordboxAgent", raise_exec)
 
 
-def pretty_xml(element: xml.Element, indent: str = None, encoding: str = "utf-8") -> str:
+def pretty_xml(element: xml.Element, indent: str | None = None, encoding: str = "utf-8") -> str:
     r"""Generates a formatted string of an XML element.
 
     Parameters

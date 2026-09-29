@@ -51,7 +51,7 @@ class RootNodeNotInitializedError(Exception):
 class XmlDuplicateError(Exception):
     """Raised when a track already exists in the XML database."""
 
-    def __init__(self, key_type: str, key: str) -> None:
+    def __init__(self, key_type: str, key: object) -> None:
         super().__init__(f"XML database already contains a track with {key_type}={key}")
 
 
@@ -137,7 +137,7 @@ class AbstractElement(abc.Mapping):  # type: ignore[type-arg]
     AbstractElement.set
     """
 
-    def __init__(self, element: xml.Element = None, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, element: xml.Element | None = None, *args: Any, **kwargs: Any) -> None:
         self._element: xml.Element | None = element
         if element is None:
             self._init(*args, **kwargs)
@@ -153,7 +153,7 @@ class AbstractElement(abc.Mapping):  # type: ignore[type-arg]
         """Loads the sub-elements of an existing XML element."""
         pass
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: object, default: Any = None, /) -> Any:
         """Returns the value of an attribute of the XML element.
 
         The type of the attribute value is converted if a conversion method is specified
@@ -178,6 +178,8 @@ class AbstractElement(abc.Mapping):  # type: ignore[type-arg]
         XmlAttributeKeyError:
             Raised if `key` is not a valid attribute key.
         """
+        if not isinstance(key, str):
+            return default
         if key not in self.ATTRIBS:
             raise XmlAttributeKeyError(self.__class__, key, self.ATTRIBS)
         if self._element is None:
@@ -297,12 +299,12 @@ class Tempo(AbstractElement):
 
     def __init__(
         self,
-        parent: xml.Element = None,
+        parent: xml.Element | None = None,
         Inizio: float = 0.0,
         Bpm: float = 0.0,
         Metro: str = "4/4",
         Battito: int = 1,
-        element: xml.Element = None,
+        element: xml.Element | None = None,
     ) -> None:
         super().__init__(element, parent, Inizio, Bpm, Metro, Battito)
 
@@ -359,13 +361,13 @@ class PositionMark(AbstractElement):
 
     def __init__(
         self,
-        parent: xml.Element = None,
+        parent: xml.Element | None = None,
         Name: str = "",
         Type: str = "cue",
         Start: float = 0.0,
-        End: float = None,
+        End: float | None = None,
         Num: int = -1,
-        element: xml.Element = None,
+        element: xml.Element | None = None,
     ) -> None:
         super().__init__(element, parent, Name, Type, Start, End, Num)
 
@@ -520,9 +522,9 @@ class Track(AbstractElement):
 
     def __init__(
         self,
-        parent: xml.Element = None,
+        parent: xml.Element | None = None,
         Location: str | Path = "",
-        element: xml.Element = None,
+        element: xml.Element | None = None,
         **kwargs: Any,
     ) -> None:
         self.tempos: list[Tempo] = list()
@@ -583,7 +585,7 @@ class Track(AbstractElement):
         Name: str = "",
         Type: str = "cue",
         Start: float = 0.0,
-        End: float = None,
+        End: float | None = None,
         Num: int = -1,
     ) -> PositionMark:
         """Adds a new ``PositionMark`` XML element to the track element.
@@ -639,7 +641,7 @@ class Node:
     FOLDER = 0
     PLAYLIST = 1
 
-    def __init__(self, parent: xml.Element = None, element: xml.Element = None, **attribs: Any) -> None:
+    def __init__(self, parent: xml.Element | None = None, element: xml.Element | None = None, **attribs: Any) -> None:
         if element is None:
             if parent is None:
                 raise ValueError("Either parent or element must be given!")
@@ -982,9 +984,9 @@ class RekordboxXml:
     def __init__(
         self,
         path: str | Path | None = None,
-        name: str = None,
-        version: str = None,
-        company: str = None,
+        name: str | None = None,
+        version: str | None = None,
+        company: str | None = None,
     ) -> None:
         self._root: xml.Element | None = None
         self._product: xml.Element | None = None
@@ -1071,7 +1073,13 @@ class RekordboxXml:
         self._root_node = Node(element=self._playlists.find(Node.TAG))
         self._update_cache()
 
-    def _init(self, name: str = None, version: str = None, company: str = None, frmt_version: str = None) -> None:
+    def _init(
+        self,
+        name: str | None = None,
+        version: str | None = None,
+        company: str | None = None,
+        frmt_version: str | None = None,
+    ) -> None:
         """Initialize a new XML file."""
         frmt_version = frmt_version or "1.0.0"
         name = name or "pyrekordbox"
@@ -1107,7 +1115,9 @@ class RekordboxXml:
         elements = self._collection.findall(f".//{Track.TAG}")
         return [Track(element=el) for el in elements]
 
-    def get_track(self, index: int = None, TrackID: int | str | None = None, Location: str = None) -> Track:
+    def get_track(
+        self, index: int | None = None, TrackID: int | str | None = None, Location: str | None = None
+    ) -> Track | None:
         """Get a track in the collection of the XML file.
 
         Parameters
@@ -1365,7 +1375,7 @@ class RekordboxXml:
             raise RootNodeNotInitializedError()
         return self._root_node.add_playlist(name, keytype)
 
-    def tostring(self, indent: str = None, encoding: str = "utf-8") -> str:
+    def tostring(self, indent: str | None = None, encoding: str = "utf-8") -> str:
         r"""Returns the contents of the XML file as a string.
 
         Parameters
@@ -1409,7 +1419,7 @@ class RekordboxXml:
                 text = data.decode(encoding)
         return text
 
-    def save(self, path: str | Path = "", indent: str = None, encoding: str = "utf-8") -> None:
+    def save(self, path: str | Path = "", indent: str | None = None, encoding: str = "utf-8") -> None:
         r"""Saves the contents to an XML file.
 
         Parameters

@@ -3,10 +3,11 @@
 
 import logging
 import xml.etree.ElementTree as xml
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, IntEnum
-from typing import Any
+from enum import IntEnum, StrEnum
+from typing import Any, cast
 
 from dateutil.relativedelta import relativedelta  # noqa
 from sqlalchemy import and_, not_, or_
@@ -44,7 +45,7 @@ class Operator(IntEnum):
     ENDS_WITH = 11
 
 
-class Property(str, Enum):
+class Property(StrEnum):
     ARTIST = "artist"
     ALBUM = "album"
     ALBUM_ARTIST = "albumArtist"
@@ -151,13 +152,16 @@ PROPERTY_COLUMN_MAP: dict[str, str] = {
     Property.YEAR: "ReleaseYear",
 }
 
-TYPE_CONVERSION: dict[str, Any] = {
+type TypeConverter = Callable[[str | int], datetime | int]
+
+
+TYPE_CONVERSION: dict[Property, TypeConverter] = {
     Property.BPM: int,
-    Property.STOCK_DATE: lambda x: datetime.strptime(x, "%Y-%m-%d"),
-    Property.DATE_CREATED: lambda x: datetime.strptime(x, "%Y-%m-%d"),
+    Property.STOCK_DATE: lambda x: datetime.strptime(cast(str, x), "%Y-%m-%d"),
+    Property.DATE_CREATED: lambda x: datetime.strptime(cast(str, x), "%Y-%m-%d"),
     Property.COUNTER: int,
     Property.RATING: int,
-    Property.DATE_RELEASED: lambda x: datetime.strptime(x, "%Y-%m-%d"),
+    Property.DATE_RELEASED: lambda x: datetime.strptime(cast(str, x), "%Y-%m-%d"),
     Property.DURATION: int,
     Property.YEAR: int,
 }
@@ -169,7 +173,7 @@ PROPERTIES = [str(p.value) for p in list(Property)]  # noqa
 class Condition:
     """Dataclass for a smart playlist condition."""
 
-    property: str
+    property: Property
     operator: int
     unit: str
     value_left: str | int
@@ -199,9 +203,9 @@ def right_bitshift(x: int, nbit: int = 32) -> int:
 
 
 def _get_condition_values(cond: Condition) -> tuple[Any, Any]:
-    val_left = cond.value_left
-    val_right = cond.value_right
-    func = None
+    val_left: str | int | datetime | None = cond.value_left
+    val_right: str | int | datetime | None = cond.value_right
+    func: TypeConverter | None = None
     if cond.operator in (Operator.IN_LAST, Operator.NOT_IN_LAST):
         func = int
     elif cond.property in TYPE_CONVERSION:
@@ -209,15 +213,15 @@ def _get_condition_values(cond: Condition) -> tuple[Any, Any]:
 
     if func is not None:
         if val_left != "":
-            val_left = func(val_left)
+            val_left = func(cond.value_left)
         if val_right != "":
             try:
-                val_right = func(val_right)
+                val_right = func(cond.value_right)
             except ValueError:
                 pass
 
     if val_left == "":
-        val_left = None  # type: ignore
+        val_left = None
 
     return val_left, val_right
 
@@ -235,10 +239,12 @@ class SmartList:
         """Parse the XML source of a smart playlist."""
         tree = xml.ElementTree(xml.fromstring(source))
         root = tree.getroot()
+        if root is None:
+            raise ValueError("Smart playlist XML has no root element")
         conditions = list()
         for child in root.findall("CONDITION"):
             condition = Condition(
-                property=child.attrib["PropertyName"],
+                property=Property(child.attrib["PropertyName"]),
                 operator=int(child.attrib["Operator"]),
                 unit=child.attrib["ValueUnit"],
                 value_left=child.attrib["ValueLeft"],
@@ -293,8 +299,8 @@ class SmartList:
         unit : str, optional
             The unit to use, by default "".
         """
-        if isinstance(prop, Property):
-            prop = str(prop.value)
+        if isinstance(prop, str):
+            prop = Property(prop)
         cond = Condition(prop, int(operator), unit, value_left, value_right)
         self.conditions.append(cond)
 
@@ -338,21 +344,23 @@ class SmartList:
                     comp = getattr(DjmdContent, colum_name).endswith(val_left)
                 elif cond.operator == Operator.IN_LAST:
                     now = datetime.now()
+                    offset = int(val_left)
                     if cond.unit == "day":
-                        t0 = now - relativedelta(days=val_left)
+                        t0 = now - relativedelta(days=offset)
                         comp = getattr(DjmdContent, colum_name) > t0
                     elif cond.unit == "month":
-                        t0 = now - relativedelta(months=val_left)
+                        t0 = now - relativedelta(months=offset)
                         comp = getattr(DjmdContent, colum_name).month > t0
                     else:
                         raise ValueError(f"Unknown unit '{cond.unit}'")
                 elif cond.operator == Operator.NOT_IN_LAST:
                     now = datetime.now()
+                    offset = int(val_left)
                     if cond.unit == "day":
-                        t0 = now - relativedelta(days=val_left)
+                        t0 = now - relativedelta(days=offset)
                         comp = getattr(DjmdContent, colum_name) < t0
                     elif cond.unit == "month":
-                        t0 = now - relativedelta(months=val_left)
+                        t0 = now - relativedelta(months=offset)
                         comp = getattr(DjmdContent, colum_name).month < t0
                     else:
                         raise ValueError(f"Unknown unit '{cond.unit}'")
