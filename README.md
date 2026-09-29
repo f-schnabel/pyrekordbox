@@ -31,6 +31,8 @@ Tested Rekordbox versions: ``5.8.6 | 6.7.7 | 7.0.9``
 
 ## 🔧 Installation
 
+Pyrekordbox requires Python 3.12 or newer.
+
 Pyrekordbox is available on [PyPI][pypi-link]:
 ````commandline
 pip install pyrekordbox
