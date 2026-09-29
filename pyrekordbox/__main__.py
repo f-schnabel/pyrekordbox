@@ -3,6 +3,7 @@
 
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -25,7 +26,7 @@ class WorkingDir:
 def clone_repo(https_url: str) -> Path:
     path = Path.cwd() / https_url.split("/")[-1]
     if not path.exists():
-        os.system(f"git clone {https_url}")
+        subprocess.run(["git", "clone", https_url], check=True)
         assert path.exists()
     else:
         print(f"Repository {https_url} already cloned")
@@ -91,11 +92,11 @@ def install_pysqlcipher(
         if build:
             # Build amalgamation
             print()
-            os.system(f"{pyexecutable} setup.py build_static build")
+            subprocess.run([pyexecutable, "setup.py", "build_static", "build"], check=True)
         if install:
             # Install pysqlcipher package
             print()
-            os.system(f"{pyexecutable} setup.py install")
+            subprocess.run([pyexecutable, "setup.py", "install"], check=True)
 
     # Remove temporary files
     if cleanup:
