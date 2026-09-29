@@ -10,9 +10,7 @@ PathLike = str | Path
 
 
 class Rekordbox6Database(MasterDatabase):
-    def __init__(
-        self, path: PathLike = None, db_dir: PathLike = "", key: str = "", unlock: bool = True
-    ):
+    def __init__(self, path: PathLike = None, db_dir: PathLike = "", key: str = "", unlock: bool = True):
         warn_deprecated(
             "pyrekordbox.db6.Rekordbox6Database",
             "pyrekordbox.masterdb.MasterDatabase",

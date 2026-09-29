@@ -27,8 +27,7 @@ class StructNotInitializedError(Exception):
 class BuildTagLengthError(Exception):
     def __init__(self, struct: Struct, len_data: int) -> None:
         super().__init__(
-            f"`len_tag` ({struct.len_tag}) of '{struct.type}' does not "
-            f"match the data-length ({len_data})!"
+            f"`len_tag` ({struct.len_tag}) of '{struct.type}' does not match the data-length ({len_data})!"
         )
 
 
@@ -194,9 +193,7 @@ class PQTZAnlzTag(AbstractAnlzTag):
 
         # For now only values of existing beats can be set
         if n_beats != n:
-            raise ValueError(
-                f"Number of beats not equal to current content length: {n_beats} != {n}"
-            )
+            raise ValueError(f"Number of beats not equal to current content length: {n_beats} != {n}")
 
         for i, (beat, bpm, t) in enumerate(zip(beats, bpms, times)):
             data = {"beat": int(beat), "tempo": int(100 * bpm), "time": int(1000 * t)}

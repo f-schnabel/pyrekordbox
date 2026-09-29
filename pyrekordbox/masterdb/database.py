@@ -432,9 +432,7 @@ class MasterDatabase:
             raise SessionNotInitializedError()
         pid = get_rekordbox_pid()
         if pid:
-            raise RuntimeError(
-                "Rekordbox is running. Please close Rekordbox before commiting changes."
-            )
+            raise RuntimeError("Rekordbox is running. Please close Rekordbox before commiting changes.")
         if autoinc:
             self.registry.autoincrement_local_update_count(set_row_usn=True)
         self.session.commit()
@@ -776,9 +774,7 @@ class MasterDatabase:
 
     # -- Database updates --------------------------------------------------------------
 
-    def generate_unused_id(
-        self, table: type[models.Base], is_28_bit: bool = True, id_field_name: str = "ID"
-    ) -> int:
+    def generate_unused_id(self, table: type[models.Base], is_28_bit: bool = True, id_field_name: str = "ID") -> int:
         """Generates an unused ID for the given table."""
         max_tries = 1000000
         for _ in range(max_tries):
@@ -959,9 +955,7 @@ class MasterDatabase:
             plist_song = song
 
         if not isinstance(plist_song, models.DjmdSongPlaylist):
-            raise ValueError(
-                "Playlist must be a DjmdSongPlaylist or corresponding playlist song ID!"
-            )
+            raise ValueError("Playlist must be a DjmdSongPlaylist or corresponding playlist song ID!")
 
         logger.info("Removing song with ID=%s from playlist with ID=%s", plist_song.ID, plist.ID)
         now = datetime.datetime.now()
@@ -1331,9 +1325,7 @@ class MasterDatabase:
         '<NODE Id="123456789" LogicalOperator="1" AutomaticUpdate="1"><CONDITION '
         """
         logger.info("Creating smart playlist %s", name)
-        return self._create_playlist(
-            name, seq, image_path, parent, smart_list, PlaylistType.SMART_PLAYLIST
-        )
+        return self._create_playlist(name, seq, image_path, parent, smart_list, PlaylistType.SMART_PLAYLIST)
 
     def delete_playlist(self, playlist: PlaylistLike) -> None:
         """Deletes a playlist or playlist folder from the database.
@@ -1416,9 +1408,7 @@ class MasterDatabase:
             self.registry.on_delete(child_ids[1:])
         self.registry.on_delete(moved)
 
-    def move_playlist(
-        self, playlist: PlaylistLike, parent: PlaylistLike = None, seq: int = None
-    ) -> None:
+    def move_playlist(self, playlist: PlaylistLike, parent: PlaylistLike = None, seq: int = None) -> None:
         """Moves a playlist (folder) in the current parent folder or to a new one.
 
         Parameters
@@ -1793,9 +1783,7 @@ class MasterDatabase:
 
         id_ = self.generate_unused_id(models.DjmdArtist)
         uuid = str(uuid4())
-        artist: models.DjmdArtist = models.DjmdArtist.create(
-            ID=id_, Name=name, SearchStr=search_str, UUID=uuid
-        )
+        artist: models.DjmdArtist = models.DjmdArtist.create(ID=id_, Name=name, SearchStr=search_str, UUID=uuid)
         self.add(artist)
         self.flush()
         return artist
@@ -2291,9 +2279,7 @@ class MasterDatabase:
             data[table_name] = table_data
         return data
 
-    def to_json(
-        self, file: PathLike, indent: int = 4, sort_keys: bool = True, verbose: bool = False
-    ) -> None:
+    def to_json(self, file: PathLike, indent: int = 4, sort_keys: bool = True, verbose: bool = False) -> None:
         """Convert the database to a JSON file."""
         import json
 
@@ -2358,9 +2344,7 @@ class MasterDatabase:
 
 
 class Rekordbox6Database(MasterDatabase):
-    def __init__(
-        self, path: PathLike = None, db_dir: PathLike = "", key: str = "", unlock: bool = True
-    ):
+    def __init__(self, path: PathLike = None, db_dir: PathLike = "", key: str = "", unlock: bool = True):
         warn_deprecated(
             "pyrekordbox.db6.Rekordbox6Database",
             "pyrekordbox.masterdb.MasterDatabase",

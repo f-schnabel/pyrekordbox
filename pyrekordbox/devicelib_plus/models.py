@@ -257,9 +257,7 @@ class Category(Base):
 
     category_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     """The ID (primary key) of the table entry."""
-    menuItem_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("menuItem.menuItem_id"), default=None
-    )
+    menuItem_id: Mapped[int] = mapped_column(Integer, ForeignKey("menuItem.menuItem_id"), default=None)
     """The `menuItem_id` of the :class:`MenuItem` entry of the menu item of the category."""
     sequenceNo: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence number of the category used for sorting."""
@@ -312,25 +310,15 @@ class Content(Base):
     """The track number of the track in the album."""
     discNo: Mapped[int] = mapped_column(Integer, default=None)
     """The disc number of the track in the album."""
-    artist_id_artist: Mapped[int] = mapped_column(
-        Integer, ForeignKey("artist.artist_id"), default=None
-    )
+    artist_id_artist: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the artist of this track."""
-    artist_id_remixer: Mapped[int] = mapped_column(
-        Integer, ForeignKey("artist.artist_id"), default=None
-    )
+    artist_id_remixer: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the remixer of this track."""
-    artist_id_originalArtist: Mapped[int] = mapped_column(
-        Integer, ForeignKey("artist.artist_id"), default=None
-    )
+    artist_id_originalArtist: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the original artist of this track."""
-    artist_id_composer: Mapped[int] = mapped_column(
-        Integer, ForeignKey("artist.artist_id"), default=None
-    )
+    artist_id_composer: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the composer of this track."""
-    artist_id_lyricist: Mapped[int] = mapped_column(
-        Integer, ForeignKey("artist.artist_id"), default=None
-    )
+    artist_id_lyricist: Mapped[int] = mapped_column(Integer, ForeignKey("artist.artist_id"), default=None)
     """The `artist_id` of the :class:`Artist` entry of the lyricist of this track."""
     album_id: Mapped[int] = mapped_column(Integer, ForeignKey("album.album_id"), default=None)
     """The `album_id` of the :class:`Album` entry of the album of this track."""
@@ -534,9 +522,7 @@ class History(Base):
     """The name of the history entry."""
     attribute: Mapped[str] = mapped_column(Text, default=None)
     """The attribute of the history playlist."""
-    history_id_parent: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("history.history_id"), default=None
-    )
+    history_id_parent: Mapped[int | None] = mapped_column(Integer, ForeignKey("history.history_id"), default=None)
     """The `history_id` of the parent :class:`History` entry of this history entry."""
 
     children = relationship(
@@ -562,13 +548,9 @@ class HistoryContent(Base):
 
     __tablename__ = "history_content"
 
-    history_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("history.history_id"), default=None, primary_key=True
-    )
+    history_id: Mapped[int] = mapped_column(Integer, ForeignKey("history.history_id"), default=None, primary_key=True)
     """The `history_id` of the :class:`History` entry of the history this content belongs to."""
-    content_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("content.content_id"), default=None, primary_key=True
-    )
+    content_id: Mapped[int] = mapped_column(Integer, ForeignKey("content.content_id"), default=None, primary_key=True)
     """The `content_id` of the :class:`Content` entry of the content in this history."""
     sequenceNo: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence number of the history content entry used for sorting."""
@@ -630,9 +612,7 @@ class HotCueBankListCue(Base):
         Integer, ForeignKey("hotCueBankList.hotCueBankList_id"), default=None, primary_key=True
     )
     """The `hotCueBankList_id` of the :class:`HotCueBankList` entry this cue belongs to."""
-    cue_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("cue.cue_id"), default=None, primary_key=True
-    )
+    cue_id: Mapped[int] = mapped_column(Integer, ForeignKey("cue.cue_id"), default=None, primary_key=True)
     """The `cue_id` of the :class:`Cue` entry of the cue in this hot cue bank list."""
     sequenceNo: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence number of the hot cue bank list cue entry used for sorting."""
@@ -722,9 +702,7 @@ class MyTag(Base):
     """The name of the custom tag."""
     attribute: Mapped[int] = mapped_column(Integer, default=None)
     """The attribute of the custom tag."""
-    myTag_id_parent: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("myTag.myTag_id"), default=None
-    )
+    myTag_id_parent: Mapped[int | None] = mapped_column(Integer, ForeignKey("myTag.myTag_id"), default=None)
 
     children = relationship(
         "MyTag",
@@ -747,13 +725,9 @@ class MyTagContent(Base):
 
     __tablename__ = "myTag_content"
 
-    myTag_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("myTag.myTag_id"), default=None, primary_key=True
-    )
+    myTag_id: Mapped[int] = mapped_column(Integer, ForeignKey("myTag.myTag_id"), default=None, primary_key=True)
     """The `myTag_id` of the :class:`MyTag` entry this content belongs to."""
-    content_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("content.content_id"), default=None, primary_key=True
-    )
+    content_id: Mapped[int] = mapped_column(Integer, ForeignKey("content.content_id"), default=None, primary_key=True)
     """The `content_id` of the :class:`Content` entry of the content in this custom tag."""
 
     myTag = relationship("MyTag", back_populates="myTags")
@@ -781,9 +755,7 @@ class Playlist(Base):
     """The `image_id` of the :class:`Image` entry of the image of this playlist."""
     attribute: Mapped[int] = mapped_column(Integer, default=None)
     """The attribute of the playlist."""
-    playlist_id_parent: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("playlist.playlist_id"), default=None
-    )
+    playlist_id_parent: Mapped[int | None] = mapped_column(Integer, ForeignKey("playlist.playlist_id"), default=None)
     """The `playlist_id` of the parent :class:`Playlist` entry of this playlist."""
 
     children = relationship(
@@ -809,13 +781,9 @@ class PlaylistContent(Base):
 
     __tablename__ = "playlist_content"
 
-    playlist_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("playlist.playlist_id"), primary_key=True
-    )
+    playlist_id: Mapped[int] = mapped_column(Integer, ForeignKey("playlist.playlist_id"), primary_key=True)
     """The `playlist_id` of the :class:`Playlist` entry this content belongs to."""
-    content_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("content.content_id"), primary_key=True
-    )
+    content_id: Mapped[int] = mapped_column(Integer, ForeignKey("content.content_id"), primary_key=True)
     """The `content_id` of the :class:`Content` entry of the content in this playlist."""
     sequenceNo: Mapped[int] = mapped_column(Integer, nullable=False)
     """The sequence number of the playlist content entry used for sorting."""
@@ -858,13 +826,9 @@ class RecommendedLike(Base):
 
     __tablename__ = "recommendedLike"
 
-    content_id_1: Mapped[int] = mapped_column(
-        Integer, ForeignKey("content.content_id"), primary_key=True
-    )
+    content_id_1: Mapped[int] = mapped_column(Integer, ForeignKey("content.content_id"), primary_key=True)
     """The `content_id` of the first :class:`Content` entry of the recommended like."""
-    content_id_2: Mapped[int] = mapped_column(
-        Integer, ForeignKey("content.content_id"), primary_key=True
-    )
+    content_id_2: Mapped[int] = mapped_column(Integer, ForeignKey("content.content_id"), primary_key=True)
     """The `content_id` of the second :class:`Content` entry of the recommended like."""
     rating: Mapped[int] = mapped_column(Integer, default=None)
     """The rating of the recommended like (0-5)."""
@@ -888,9 +852,7 @@ class Sort(Base):
 
     sort_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     """The ID (primary key) of the table entry."""
-    menuItem_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("menuItem.menuItem_id"), nullable=False
-    )
+    menuItem_id: Mapped[int] = mapped_column(Integer, ForeignKey("menuItem.menuItem_id"), nullable=False)
     """The `menuItem_id` of the :class:`MenuItem` entry of the menu item this sort belongs to."""
     sequenceNo: Mapped[int] = mapped_column(Integer, default=None)
     """The sequence number of the sort entry used for sorting."""

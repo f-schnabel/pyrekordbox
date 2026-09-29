@@ -57,9 +57,7 @@ class XmlDuplicateError(Exception):
 
 class XmlAttributeKeyError(Exception):
     def __init__(self, cls: Any, key: str, attributes: list[str]) -> None:
-        super().__init__(
-            f"{key} is not a valid key for {cls.__name__}! Valid attribs:\n{attributes}"
-        )
+        super().__init__(f"{key} is not a valid key for {cls.__name__}! Valid attribs:\n{attributes}")
 
 
 def encode_path(path: str | Path) -> str:
@@ -308,9 +306,7 @@ class Tempo(AbstractElement):
     ):
         super().__init__(element, parent, Inizio, Bpm, Metro, Battito)
 
-    def _init(
-        self, parent: xml.Element, inizio: float, bpm: float, metro: str, battito: int
-    ) -> None:
+    def _init(self, parent: xml.Element, inizio: float, bpm: float, metro: str, battito: int) -> None:
         attrib = {
             "Inizio": str(inizio),
             "Bpm": str(bpm),
@@ -373,9 +369,7 @@ class PositionMark(AbstractElement):
     ):
         super().__init__(element, parent, Name, Type, Start, End, Num)
 
-    def _init(
-        self, parent: xml.Element, name: str, type_: str, start: float, end: float, num: int
-    ) -> None:
+    def _init(self, parent: xml.Element, name: str, type_: str, start: float, end: float, num: int) -> None:
         if type_ not in POSMARK_TYPE_MAPPING.inv:
             raise ValueError(f"Type '{type_}' is not supported!")
         attrib = {
@@ -1077,9 +1071,7 @@ class RekordboxXml:
         self._root_node = Node(element=self._playlists.find(Node.TAG))
         self._update_cache()
 
-    def _init(
-        self, name: str = None, version: str = None, company: str = None, frmt_version: str = None
-    ) -> None:
+    def _init(self, name: str = None, version: str = None, company: str = None, frmt_version: str = None) -> None:
         """Initialize a new XML file."""
         frmt_version = frmt_version or "1.0.0"
         name = name or "pyrekordbox"
@@ -1115,9 +1107,7 @@ class RekordboxXml:
         elements = self._collection.findall(f".//{Track.TAG}")
         return [Track(element=el) for el in elements]
 
-    def get_track(
-        self, index: int = None, TrackID: int | str | None = None, Location: str = None
-    ) -> Track:
+    def get_track(self, index: int = None, TrackID: int | str | None = None, Location: str = None) -> Track:
         """Get a track in the collection of the XML file.
 
         Parameters

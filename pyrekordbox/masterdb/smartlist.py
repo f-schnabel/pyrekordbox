@@ -177,16 +177,11 @@ class Condition:
 
     def __post_init__(self) -> None:
         if self.property not in PROPERTIES:
-            raise ValueError(
-                f"Invalid property: '{self.property}'! Supported properties: {PROPERTIES}"
-            )
+            raise ValueError(f"Invalid property: '{self.property}'! Supported properties: {PROPERTIES}")
 
         valid_ops = VALID_OPS[self.property]
         if self.operator not in valid_ops:
-            raise ValueError(
-                f"Invalid operator '{self.operator}' for '{self.property}', "
-                f"must be one of {valid_ops}"
-            )
+            raise ValueError(f"Invalid operator '{self.operator}' for '{self.property}', must be one of {valid_ops}")
 
         if self.operator == Operator.IN_RANGE:
             if not self.value_right:

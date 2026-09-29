@@ -13,6 +13,4 @@ def test_cli():
         text=True,
         check=False,
     )
-    assert result.returncode == 0, (
-        f"Command failed with exit code {result.returncode}\n{result.stderr}"
-    )
+    assert result.returncode == 0, f"Command failed with exit code {result.returncode}\n{result.stderr}"

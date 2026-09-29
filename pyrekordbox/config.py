@@ -240,8 +240,7 @@ def _get_rb_config(
         rb_prog_dir = pioneer_install_dir / application_dirname
         if not rb_prog_dir.exists():
             raise InvalidApplicationDirname(
-                f"The supplied application dirname '{application_dirname}' does not "
-                f"exist in '{pioneer_install_dir}'"
+                f"The supplied application dirname '{application_dirname}' does not exist in '{pioneer_install_dir}'"
             )
         rb_version = _extract_version(application_dirname, major_version)
     else:
@@ -263,8 +262,7 @@ def _get_rb_config(
             version = versions[-1]
         except IndexError:
             raise FileNotFoundError(
-                f"No Rekordbox {major_version} folder found in installation "
-                f"directory '{pioneer_install_dir}'"
+                f"No Rekordbox {major_version} folder found in installation directory '{pioneer_install_dir}'"
             )
         # Name of the Rekordbox application directory in `pioneer_install_dir`
         rb_version = str(versions[-1])
@@ -272,9 +270,7 @@ def _get_rb_config(
 
     # Check installation directory
     if not rb_prog_dir.exists():
-        raise FileNotFoundError(
-            f"The Rekordbox installation directory '{rb_prog_dir}' doesn't exist"
-        )
+        raise FileNotFoundError(f"The Rekordbox installation directory '{rb_prog_dir}' doesn't exist")
     logger.debug("Found Rekordbox %s install-dir: '%s'", major_version, rb_prog_dir)
 
     # Get Rekordbox application directory path for major release `major_version`
@@ -302,18 +298,14 @@ def _get_rb_config(
     return conf
 
 
-def _get_rb5_config(
-    pioneer_prog_dir: Path, pioneer_app_dir: Path, dirname: str = ""
-) -> dict[str, Any]:
+def _get_rb5_config(pioneer_prog_dir: Path, pioneer_app_dir: Path, dirname: str = "") -> dict[str, Any]:
     """Get the program configuration for Rekordbox v5.x.x."""
     major_version = 5
     conf = _get_rb_config(pioneer_prog_dir, pioneer_app_dir, major_version, dirname)
     return conf
 
 
-def _get_rb6_config(
-    pioneer_prog_dir: Path, pioneer_app_dir: Path, dirname: str = ""
-) -> dict[str, Any]:
+def _get_rb6_config(pioneer_prog_dir: Path, pioneer_app_dir: Path, dirname: str = "") -> dict[str, Any]:
     """Get the program configuration for Rekordbox v6.x.x."""
     major_version = 6
     conf = _get_rb_config(pioneer_prog_dir, pioneer_app_dir, major_version, dirname)
@@ -328,9 +320,7 @@ def _get_rb6_config(
     return conf
 
 
-def _get_rb7_config(
-    pioneer_prog_dir: Path, pioneer_app_dir: Path, dirname: str = ""
-) -> dict[str, Any]:
+def _get_rb7_config(pioneer_prog_dir: Path, pioneer_app_dir: Path, dirname: str = "") -> dict[str, Any]:
     """Get the program configuration for Rekordbox v7.x.x."""
     major_version = 7
     conf = _get_rb_config(pioneer_prog_dir, pioneer_app_dir, major_version, dirname)

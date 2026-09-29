@@ -59,9 +59,7 @@ def _rename_id(kwargs: dict[str, Any], name: str) -> dict[str, Any]:
     return kwargs
 
 
-def _parse_query_result[T: models.Base](
-    query: Query[T], id_column: str, kwargs: dict[str, Any]
-) -> ParsedQuery[T]:
+def _parse_query_result[T: models.Base](query: Query[T], id_column: str, kwargs: dict[str, Any]) -> ParsedQuery[T]:
     if id_column in kwargs:
         try:
             result: T = query.one()
@@ -338,9 +336,7 @@ class DeviceLibraryPlus:
 
     def get_hot_cue_banklist_cue(self, **kwargs: Any) -> Query[models.HotCueBankListCue]:
         """Creates a filtered query for the ``HotCueBankListCue`` table."""
-        query: Query[models.HotCueBankListCue] = self.query(models.HotCueBankListCue).filter_by(
-            **kwargs
-        )
+        query: Query[models.HotCueBankListCue] = self.query(models.HotCueBankListCue).filter_by(**kwargs)
         return query
 
     def get_image(self, **kwargs: Any) -> ParsedQuery[models.Image]:
@@ -386,9 +382,7 @@ class DeviceLibraryPlus:
 
     def get_playlist_content(self, **kwargs: Any) -> Query[models.PlaylistContent]:
         """Creates a filtered query for the ``PlaylistContent`` table."""
-        query: Query[models.PlaylistContent] = self.query(models.PlaylistContent).filter_by(
-            **kwargs
-        )
+        query: Query[models.PlaylistContent] = self.query(models.PlaylistContent).filter_by(**kwargs)
         return query
 
     def get_property(self, **kwargs: Any) -> Query[models.Property]:
@@ -871,9 +865,7 @@ class DeviceLibraryPlus:
         models.Playlist
             The newly created playlist object.
         """
-        return self._add_playlist(
-            name, attribute=0, seq=seq, image_id=image_id, parent_id=parent_id
-        )
+        return self._add_playlist(name, attribute=0, seq=seq, image_id=image_id, parent_id=parent_id)
 
     def add_playlist_folder(
         self,
@@ -901,9 +893,7 @@ class DeviceLibraryPlus:
         """
         return self._add_playlist(name, attribute=1, seq=seq, image_id=None, parent_id=parent_id)
 
-    def add_playlist_content(
-        self, playlist_id: int, content_id: int, seq: int = None
-    ) -> models.PlaylistContent:
+    def add_playlist_content(self, playlist_id: int, content_id: int, seq: int = None) -> models.PlaylistContent:
         """Create a new playlist content entry in the database.
 
         Parameters
@@ -979,9 +969,7 @@ class DeviceLibraryPlus:
         num_contents = self.get_content().count()
         prop.numberOfContents = num_contents
 
-    def add_recommended_like(
-        self, content_id_1: int, content_id_2: int, rating: int
-    ) -> models.RecommendedLike:
+    def add_recommended_like(self, content_id_1: int, content_id_2: int, rating: int) -> models.RecommendedLike:
         """Create a new recommended like entry in the database.
 
         Parameters
@@ -1072,9 +1060,7 @@ class DeviceLibraryPlus:
             data[table_name] = table_data
         return data
 
-    def to_json(
-        self, file: PathLike, indent: int = 4, sort_keys: bool = True, verbose: bool = False
-    ) -> None:
+    def to_json(self, file: PathLike, indent: int = 4, sort_keys: bool = True, verbose: bool = False) -> None:
         """Convert the database to a JSON file."""
         import json
 

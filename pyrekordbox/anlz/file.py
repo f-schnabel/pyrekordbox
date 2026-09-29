@@ -20,8 +20,7 @@ XOR_MASK = bytearray.fromhex("CB E1 EE FA E5 EE AD EE E9 D2 E9 EB E1 E9 F3 E8 E9
 class BuildFileLengthError(Exception):
     def __init__(self, struct: Struct, len_data: int) -> None:
         super().__init__(
-            f"`len_file` ({struct.len_file}) of '{struct.type}' does not "
-            f"match the data-length ({len_data})!"
+            f"`len_file` ({struct.len_file}) of '{struct.type}' does not match the data-length ({len_data})!"
         )
 
 
