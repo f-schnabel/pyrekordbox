@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2025-08-13
 
 import datetime
 import logging
+from collections.abc import Callable
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union
+from typing import Any
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.exc import NoResultFound
@@ -30,9 +30,8 @@ logger = logging.getLogger(__name__)
 BLOB = b"PN_1dH8$oLJY)16j_RvM6qphWw`476>;C1cWmI#se(PG`j}~xAjlufj?`#0i{;=glh(SkW)y0>n?YEiD`l%t("
 
 # Type aliases
-PathLike = Union[str, Path]
-T = TypeVar("T", bound=models.Base)
-ParsedQuery = Union[T, Query[T], None]
+PathLike = str | Path
+type ParsedQuery[T: models.Base] = T | Query[T] | None
 
 # ID column names
 ALBUM_ID = "album_id"
@@ -53,14 +52,16 @@ PLAYLIST_ID = "playlist_id"
 SORT_ID = "sort_id"
 
 
-def _rename_id(kwargs: Dict[str, Any], name: str) -> Dict[str, Any]:
+def _rename_id(kwargs: dict[str, Any], name: str) -> dict[str, Any]:
     """Renames the 'id' key to the corresponding id column name."""
     if "id" in kwargs:
         kwargs[name] = kwargs.pop("id")
     return kwargs
 
 
-def _parse_query_result(query: Query[T], id_column: str, kwargs: Dict[str, Any]) -> ParsedQuery[T]:
+def _parse_query_result[T: models.Base](
+    query: Query[T], id_column: str, kwargs: dict[str, Any]
+) -> ParsedQuery[T]:
     if id_column in kwargs:
         try:
             result: T = query.one()
@@ -125,8 +126,8 @@ class DeviceLibraryPlus:
             engine = create_engine(f"sqlite:///{db_path}")
 
         self.engine = engine
-        self.session: Optional[Session] = None
-        self._events: Dict[str, Callable[[Any], None]] = dict()
+        self.session: Session | None = None
+        self._events: dict[str, Callable[[Any], None]] = dict()
 
         self.open()
 
@@ -166,9 +167,9 @@ class DeviceLibraryPlus:
 
     def __exit__(
         self,
-        type_: Optional[Type[BaseException]],
-        value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        type_: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         self.close()
 
@@ -411,10 +412,10 @@ class DeviceLibraryPlus:
     def add_album(
         self,
         name: str,
-        artist_id: Optional[int] = None,
-        image_id: Optional[int] = None,
+        artist_id: int | None = None,
+        image_id: int | None = None,
         is_compilation: bool = False,
-        search_string: Optional[str] = None,
+        search_string: str | None = None,
     ) -> models.Album:
         """Create a new album entry in the database.
 
@@ -450,7 +451,7 @@ class DeviceLibraryPlus:
     def add_artist(
         self,
         name: str,
-        search_string: Optional[str] = None,
+        search_string: str | None = None,
     ) -> models.Artist:
         """Create a new artist entry in the database.
 
@@ -1043,7 +1044,7 @@ class DeviceLibraryPlus:
 
     # ----------------------------------------------------------------------------------
 
-    def to_dict(self, verbose: bool = False) -> Dict[str, Any]:
+    def to_dict(self, verbose: bool = False) -> dict[str, Any]:
         """Convert the database to a dictionary.
 
         Parameters

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2022-04-10
 
@@ -7,7 +6,7 @@
 import base64
 import os
 import warnings
-import xml.etree.cElementTree as xml
+import xml.etree.ElementTree as xml
 import zlib
 from xml.dom import minidom
 

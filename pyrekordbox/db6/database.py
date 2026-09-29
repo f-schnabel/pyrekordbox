@@ -1,14 +1,12 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-08-13
 
 from pathlib import Path
-from typing import Union
 
 from ..masterdb.database import MasterDatabase
 from ..utils import warn_deprecated
 
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 class Rekordbox6Database(MasterDatabase):

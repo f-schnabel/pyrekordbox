@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-08-07
 
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Iterator, List, Tuple, Type
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.orm.exc import ObjectDeletedError
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 Instances = Any
-RegistryUpdateItem = Tuple[Instances, str, str, Any]
+RegistryUpdateItem = tuple[Instances, str, str, Any]
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,8 @@ class RekordboxAgentRegistry:
         The Rekordbox database instance.
     """
 
-    __update_sequence__: List[RegistryUpdateItem] = list()
-    __update_history__: List[RegistryUpdateItem] = list()
+    __update_sequence__: list[RegistryUpdateItem] = list()
+    __update_history__: list[RegistryUpdateItem] = list()
     __enabled__ = True
 
     def __init__(self, db: "MasterDatabase") -> None:
@@ -123,7 +123,7 @@ class RekordboxAgentRegistry:
 
     @classmethod
     @contextmanager
-    def disabled(cls) -> Iterator[Type["RekordboxAgentRegistry"]]:
+    def disabled(cls) -> Iterator[type["RekordboxAgentRegistry"]]:
         """Context manager to temporarily disable the tracking of database changes.
 
         Examples
@@ -177,7 +177,7 @@ class RekordboxAgentRegistry:
         -------
         value : str
         """
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id=key)
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key)
         return reg.str_1
 
     def get_text(self, key: str) -> str:
@@ -192,7 +192,7 @@ class RekordboxAgentRegistry:
         -------
         value : str
         """
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id=key)
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key)
         return reg.text_1
 
     def get_int(self, key: str) -> int:
@@ -207,7 +207,7 @@ class RekordboxAgentRegistry:
         -------
         value : int
         """
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id=key)
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key)
         return reg.int_1
 
     def get_date(self, key: str) -> datetime:
@@ -222,7 +222,7 @@ class RekordboxAgentRegistry:
         -------
         value : datetime.datetime
         """
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id=key)
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id=key)
         return reg.date_1
 
     def set_string(self, key: str, value: str) -> None:
@@ -275,7 +275,7 @@ class RekordboxAgentRegistry:
 
     def get_local_update_count(self) -> int:
         """Returns the current global local USN (unique sequence number)."""
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id="localUpdateCount")
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id="localUpdateCount")
         return reg.int_1
 
     def set_local_update_count(self, value: int) -> None:
@@ -286,7 +286,7 @@ class RekordboxAgentRegistry:
         value : int
             The new USN value.
         """
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id="localUpdateCount")
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id="localUpdateCount")
         reg.int_1 = value
 
     def increment_local_update_count(self, num: int = 1) -> int:
@@ -304,7 +304,7 @@ class RekordboxAgentRegistry:
         """
         if not isinstance(num, int) or num < 1:
             raise ValueError("The USN can only be increment by a positive integer!")
-        reg: "AgentRegistry" = self.db.get_agent_registry(registry_id="localUpdateCount")
+        reg: AgentRegistry = self.db.get_agent_registry(registry_id="localUpdateCount")
         reg.int_1 = reg.int_1 + num
         return reg.int_1
 

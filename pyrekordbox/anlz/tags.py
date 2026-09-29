@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-02-01
 
 import logging
 from abc import ABC
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, List, Sequence, Tuple, Union
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -41,7 +41,7 @@ class AbstractAnlzTag(ABC):
     LEN_TAG: int = 0  # Expected value of `len_tag`
 
     def __init__(self, tag_data: bytes) -> None:
-        self.struct: Union[Struct, None] = None
+        self.struct: Struct | None = None
         if tag_data is not None:
             self.parse(tag_data)
 
@@ -117,7 +117,7 @@ class AbstractAnlzTag(ABC):
         return str(self.struct)
 
 
-def _parse_wf_preview(tag: structs.AnlzTag) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
+def _parse_wf_preview(tag: structs.AnlzTag) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
     n = len(tag.entries)
     wf = np.zeros(n, dtype=np.int8)
     col = np.zeros(n, dtype=np.int8)
@@ -161,7 +161,7 @@ class PQTZAnlzTag(AbstractAnlzTag):
     def times(self) -> npt.NDArray[np.float64]:
         return self.get_times()
 
-    def get(self) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    def get(self) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
         n = len(self.content.entries)
         beats = np.zeros(n, dtype=np.int8)
         bpms = np.zeros(n, dtype=np.float64)
@@ -279,7 +279,7 @@ class PQT2AnlzTag(AbstractAnlzTag):
             actual = 2 * len(self.content.entries)  # each entry consist of 2 bytes
             assert actual == expected, f"{actual} != {expected}"
 
-    def get(self) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    def get(self) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
         n = len(self.content.bpm)
         beats = np.zeros(n, dtype=np.int8)
         bpms = np.zeros(n, dtype=np.float64)
@@ -359,7 +359,7 @@ class PPTHAnlzTag(AbstractAnlzTag):
     def get(self) -> str:
         return self.path
 
-    def set(self, path: Union[str, Path]) -> None:
+    def set(self, path: str | Path) -> None:
         pathstr = str(path).replace("\\", "/")
         len_path = len(pathstr.encode("utf-16-be")) + 2
         self.content.path = pathstr
@@ -403,7 +403,7 @@ class PVB2AnlzTag(AbstractAnlzTag):
         total: int = self.content.total_samples
         return total
 
-    def get(self) -> Tuple[npt.NDArray[np.uint64], npt.NDArray[np.uint64], npt.NDArray[np.uint32]]:
+    def get(self) -> tuple[npt.NDArray[np.uint64], npt.NDArray[np.uint64], npt.NDArray[np.uint32]]:
         entries = self.content.entries
         samples = np.array([e.sample for e in entries], dtype=np.uint64)
         offsets = np.array([e.offset for e in entries], dtype=np.uint64)
@@ -423,7 +423,7 @@ class PVDIAnlzTag(AbstractAnlzTag):
     name = "vocal_detection"
     LEN_HEADER = 24
 
-    def get(self) -> List[int]:
+    def get(self) -> list[int]:
         if self.struct is None:
             raise StructNotInitializedError()
         return list(self.content.confidence)
@@ -444,7 +444,7 @@ class PWAVAnlzTag(AbstractAnlzTag):
     name = "wf_preview"
     LEN_HEADER = 20
 
-    def get(self) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
+    def get(self) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
         return _parse_wf_preview(self.content)
 
 
@@ -455,7 +455,7 @@ class PWV2AnlzTag(AbstractAnlzTag):
     name = "wf_tiny_preview"
     LEN_HEADER = 20
 
-    def get(self) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
+    def get(self) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
         return _parse_wf_preview(self.content)
 
 
@@ -466,7 +466,7 @@ class PWV3AnlzTag(AbstractAnlzTag):
     name = "wf_detail"
     LEN_HEADER = 24
 
-    def get(self) -> Tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
+    def get(self) -> tuple[npt.NDArray[np.int8], npt.NDArray[np.int8]]:
         return _parse_wf_preview(self.content)
 
 
@@ -477,7 +477,7 @@ class PWV4AnlzTag(AbstractAnlzTag):
     name = "wf_color"
     LEN_HEADER = 24
 
-    def get(self) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+    def get(self) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
         num_entries = self.content.len_entries
         data = self.content.entries
         ws, hs = 1, 1
@@ -514,7 +514,7 @@ class PWV5AnlzTag(AbstractAnlzTag):
     name = "wf_color_detail"
     LEN_HEADER = 24
 
-    def get(self) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.int64]]:
+    def get(self) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.int64]]:
         """Parse the Waveform Color Detail Tag (PWV5).
 
         The format of the entries is:

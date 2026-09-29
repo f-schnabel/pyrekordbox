@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-02-01
 
 """Rekordbox My-Setting file handlers."""
 
 import re
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
 from pathlib import Path
-from typing import Any, Dict, Iterator, Type, Union
+from typing import Any
 
 from construct import Struct
 
@@ -100,13 +99,13 @@ class SettingsFile(MutableMapping):  # type: ignore[type-arg]
     """
 
     struct: Struct
-    defaults: Dict[str, str]
+    defaults: dict[str, str]
     version: str = ""  # only used by DEVSETTING
 
     def __init__(self) -> None:
         super().__init__()
         self.parsed = None
-        self._items: Dict[str, str] = dict()
+        self._items: dict[str, str] = dict()
 
     @classmethod
     def parse(cls, data: bytes) -> "SettingsFile":
@@ -127,7 +126,7 @@ class SettingsFile(MutableMapping):  # type: ignore[type-arg]
         return self
 
     @classmethod
-    def parse_file(cls, path: Union[str, Path]) -> "SettingsFile":
+    def parse_file(cls, path: str | Path) -> "SettingsFile":
         """Reads and parses a Rekordbox settings binary file.
 
         Parameters
@@ -179,7 +178,7 @@ class SettingsFile(MutableMapping):  # type: ignore[type-arg]
     def __delitem__(self, key: str) -> None:
         del self._items[key]
 
-    def get(self, key: str, default: str = None) -> Union[str, None]:  # type: ignore[override]
+    def get(self, key: str, default: str = None) -> str | None:  # type: ignore[override]
         """Returns the value of a setting of the My-Setting file.
 
         If the key is not found in the My-Setting data, but it is present in the
@@ -229,7 +228,7 @@ class SettingsFile(MutableMapping):  # type: ignore[type-arg]
         items.update(self._items)
 
         # Create file data
-        file_items: Dict[str, Any] = {"data": items, "checksum": 0}
+        file_items: dict[str, Any] = {"data": items, "checksum": 0}
         if self.version:
             file_items["version"] = self.version
 
@@ -244,7 +243,7 @@ class SettingsFile(MutableMapping):  # type: ignore[type-arg]
         bytedata: bytes = self.struct.build(file_items)
         return bytedata
 
-    def save(self, path: Union[str, Path]) -> None:
+    def save(self, path: str | Path) -> None:
         """Save the contents of the My-Setting file object.
 
         Parameters
@@ -366,7 +365,7 @@ class DevSettingFile(SettingsFile):
     defaults = dict(entries="")
 
 
-FILES: Dict[str, Type[SettingsFile]] = {
+FILES: dict[str, type[SettingsFile]] = {
     "DEVSETTING.DAT": DevSettingFile,
     "DJMMYSETTING.DAT": DjmMySettingFile,
     "MYSETTING.DAT": MySettingFile,

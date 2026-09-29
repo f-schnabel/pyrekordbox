@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-02-01
 
 import os
 import struct
-from typing import List
 
 import numpy as np
 import pytest
@@ -73,7 +71,7 @@ def _build_vbr_analysis_file(tag_type: str) -> bytes:
     )
 
 
-def _build_pvdi_analysis_file(confidence: List[int]) -> bytes:
+def _build_pvdi_analysis_file(confidence: list[int]) -> bytes:
     body = bytes(confidence)
     tag = (
         struct.pack(

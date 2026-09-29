@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-08-13
 
 import datetime
 import logging
 import secrets
+from collections.abc import Callable
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import MetaData, create_engine, event, or_, select
@@ -42,13 +42,12 @@ BLOB = b"PN_Pq^*N>(JYe*u^8;Yg76HuZ<mR13S?=>)b9;DpoTXV(6ItkU`}8*m6tx_I{Solh_N#dfe
 
 logger = logging.getLogger(__name__)
 
-PathLike = Union[str, Path]
-ContentLike = Union[DjmdContent, int, str]
-PlaylistLike = Union[DjmdPlaylist, int, str]
-T = TypeVar("T", bound=models.Base)
+PathLike = str | Path
+ContentLike = DjmdContent | int | str
+PlaylistLike = DjmdPlaylist | int | str
 
 
-def _parse_query_result(query: Query[T], kwargs: Dict[str, Any]) -> Any:
+def _parse_query_result[T: models.Base](query: Query[T], kwargs: dict[str, Any]) -> Any:
     if "ID" in kwargs or "registry_id" in kwargs:
         try:
             result: T = query.one()
@@ -168,11 +167,11 @@ class MasterDatabase:
 
         self.engine = engine
         self.autocommit = autocommit
-        self.session: Optional[Session] = None
+        self.session: Session | None = None
 
         self.registry = RekordboxAgentRegistry(self)
-        self._events: Dict[str, Callable[[Any], None]] = dict()
-        self.playlist_xml: Optional[MasterPlaylistXml]
+        self._events: dict[str, Callable[[Any], None]] = dict()
+        self.playlist_xml: MasterPlaylistXml | None
         try:
             self.playlist_xml = MasterPlaylistXml(db_dir=db_directory)
         except FileNotFoundError:
@@ -229,9 +228,9 @@ class MasterDatabase:
 
     def __exit__(
         self,
-        type_: Optional[Type[BaseException]],
-        value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        type_: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         try:
             if self.autocommit:
@@ -505,7 +504,7 @@ class MasterDatabase:
         return _parse_query_result(query, kwargs)
 
     # noinspection PyUnresolvedReferences
-    def search_content(self, text: str) -> List[DjmdContent]:
+    def search_content(self, text: str) -> list[DjmdContent]:
         """Searches the contents of the ``DjmdContent`` table.
 
         The search is case-insensitive and includes the following collumns of the
@@ -558,7 +557,7 @@ class MasterDatabase:
         query = self.query(DjmdContent).join(DjmdContent.Key)
         results.update(query.filter(models.DjmdKey.ScaleName.contains(text)).all())
 
-        result_list: List[DjmdContent] = list(results)
+        result_list: list[DjmdContent] = list(results)
         result_list.sort(key=lambda x: x.ID)
         return result_list
 
@@ -778,7 +777,7 @@ class MasterDatabase:
     # -- Database updates --------------------------------------------------------------
 
     def generate_unused_id(
-        self, table: Type[models.Base], is_28_bit: bool = True, id_field_name: str = "ID"
+        self, table: type[models.Base], is_28_bit: bool = True, id_field_name: str = "ID"
     ) -> int:
         """Generates an unused ID for the given table."""
         max_tries = 1000000
@@ -924,7 +923,7 @@ class MasterDatabase:
     def remove_from_playlist(
         self,
         playlist: PlaylistLike,
-        song: Union[models.DjmdSongPlaylist, int, str],
+        song: models.DjmdSongPlaylist | int | str,
     ) -> None:
         """Removes a track from a playlist.
 
@@ -992,7 +991,7 @@ class MasterDatabase:
     def move_song_in_playlist(
         self,
         playlist: PlaylistLike,
-        song: Union[models.DjmdSongPlaylist, int, str],
+        song: models.DjmdSongPlaylist | int | str,
         new_track_no: int,
     ) -> None:
         """Sets a new track number of a song.
@@ -1101,10 +1100,10 @@ class MasterDatabase:
     def _create_playlist(
         self,
         name: str,
-        seq: Optional[int],
-        image_path: Optional[str],
-        parent: Optional[PlaylistLike],
-        smart_list: Optional[SmartList] = None,
+        seq: int | None,
+        image_path: str | None,
+        parent: PlaylistLike | None,
+        smart_list: SmartList | None = None,
         attribute: int = None,
     ) -> DjmdPlaylist:
         """Creates a new playlist object."""
@@ -1651,7 +1650,7 @@ class MasterDatabase:
     def add_album(
         self,
         name: str,
-        artist: Union[models.DjmdArtist, int, str] = None,
+        artist: models.DjmdArtist | int | str | None = None,
         image_path: PathLike = None,
         compilation: bool = None,
         search_str: str = None,
@@ -1710,7 +1709,7 @@ class MasterDatabase:
         >>> content.AlbumID = album.ID
         """
         # Get artist ID
-        artist_id: Optional[str] = None
+        artist_id: str | None = None
         if artist is not None:
             art: models.DjmdArtist
             if isinstance(artist, (int, str)):
@@ -1975,7 +1974,7 @@ class MasterDatabase:
 
     # ----------------------------------------------------------------------------------
 
-    def get_mysetting_paths(self) -> List[Path]:
+    def get_mysetting_paths(self) -> list[Path]:
         """Returns the file paths of the local Rekordbox MySetting files.
 
         Returns
@@ -1983,7 +1982,7 @@ class MasterDatabase:
         paths : list[str]
             the file paths of the local MySetting files.
         """
-        paths: List[Path] = list()
+        paths: list[Path] = list()
         for item in self.get_setting_file():
             paths.append(self._db_dir / item.Path.lstrip("/\\"))
         return paths
@@ -2013,7 +2012,7 @@ class MasterDatabase:
         path: Path = self._share_dir / dat_path.parent
         return path
 
-    def get_anlz_paths(self, content: ContentLike) -> Dict[str, Optional[Path]]:
+    def get_anlz_paths(self, content: ContentLike) -> dict[str, Path | None]:
         """Returns all existing ANLZ analysis file paths of a track.
 
         Parameters
@@ -2032,7 +2031,7 @@ class MasterDatabase:
         root = self.get_anlz_dir(content)
         return get_anlz_paths(root)
 
-    def read_anlz_files(self, content: ContentLike) -> Dict[Path, AnlzFile]:
+    def read_anlz_files(self, content: ContentLike) -> dict[Path, AnlzFile]:
         """Reads all existing ANLZ analysis files of a track.
 
         Parameters
@@ -2051,7 +2050,7 @@ class MasterDatabase:
         root = self.get_anlz_dir(content)
         return read_anlz_files(root)
 
-    def get_anlz_path(self, content: ContentLike, type_: str) -> Optional[PathLike]:
+    def get_anlz_path(self, content: ContentLike, type_: str) -> PathLike | None:
         """Returns the file path of an ANLZ analysis file of a track.
 
         Parameters
@@ -2074,7 +2073,7 @@ class MasterDatabase:
         paths = get_anlz_paths(root)
         return paths.get(type_.upper(), "")
 
-    def read_anlz_file(self, content: ContentLike, type_: str) -> Optional[AnlzFile]:
+    def read_anlz_file(self, content: ContentLike, type_: str) -> AnlzFile | None:
         """Reads an ANLZ analysis file of a track.
 
         Parameters
@@ -2264,7 +2263,7 @@ class MasterDatabase:
         new_path = new_path.with_suffix(ext)
         self.update_content_path(cont, new_path, save, check_path, commit=commit)
 
-    def to_dict(self, verbose: bool = False) -> Dict[str, Any]:
+    def to_dict(self, verbose: bool = False) -> dict[str, Any]:
         """Convert the database to a dictionary.
 
         Parameters

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2022-04-10
 
@@ -12,9 +11,9 @@ import json
 import logging
 import os
 import sys
-import xml.etree.cElementTree as xml
+import xml.etree.ElementTree as xml
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any
 
 import packaging.version
 
@@ -36,7 +35,7 @@ class InvalidApplicationDirname(Exception):
     pass
 
 
-def get_pioneer_install_dir(path: Union[str, Path] = None) -> Path:  # pragma: no cover
+def get_pioneer_install_dir(path: str | Path | None = None) -> Path:  # pragma: no cover
     """Returns the path of the Pioneer program installation directory.
 
     On Windows, the Pioneer program data is stored in `/ProgramFiles/Pioneer`.
@@ -76,7 +75,7 @@ def get_pioneer_install_dir(path: Union[str, Path] = None) -> Path:  # pragma: n
     return path
 
 
-def get_pioneer_app_dir(path: Union[str, Path] = None) -> Path:  # pragma: no cover
+def get_pioneer_app_dir(path: str | Path | None = None) -> Path:  # pragma: no cover
     """Returns the path of the Pioneer application data directory.
 
     On Windows, the Pioneer application data is stored in `/Users/user/AppData/Roaming`
@@ -116,7 +115,7 @@ def get_pioneer_app_dir(path: Union[str, Path] = None) -> Path:  # pragma: no co
     return path
 
 
-def _convert_type(s: str) -> Union[str, int, float, List[int], List[float]]:
+def _convert_type(s: str) -> str | int | float | list[int] | list[float]:
     # Try to parse as int, float, list of int, list of float
     types_ = int, float
     for type_ in types_:
@@ -132,7 +131,7 @@ def _convert_type(s: str) -> Union[str, int, float, List[int], List[float]]:
     return s
 
 
-def read_rekordbox_settings(rekordbox_app_dir: Union[str, Path]) -> Dict[str, Any]:
+def read_rekordbox_settings(rekordbox_app_dir: str | Path) -> dict[str, Any]:
     """Finds and parses the 'rekordbox3.settings' file in the Rekordbox 5 or 6 app-dir.
 
     The settings file usually is called 'rekordbox3.settings' and is
@@ -167,7 +166,7 @@ def read_rekordbox_settings(rekordbox_app_dir: Union[str, Path]) -> Dict[str, An
     return settings
 
 
-def read_rekordbox6_options(pioneer_app_dir: Union[str, Path]) -> Dict[str, Any]:
+def read_rekordbox6_options(pioneer_app_dir: str | Path) -> dict[str, Any]:
     """Finds and parses the Rekordbox 6 `options.json` file with additional settings.
 
     The options file contains additional settings used by Rekordbox 6, for example the
@@ -188,7 +187,7 @@ def read_rekordbox6_options(pioneer_app_dir: Union[str, Path]) -> Dict[str, Any]
     pioneer_app_dir = Path(pioneer_app_dir)
     opt_path = pioneer_app_dir / "rekordboxAgent" / "storage" / "options.json"
     # Read and parse the options file
-    with open(opt_path, "r") as fh:
+    with open(opt_path) as fh:
         data = json.load(fh)
     options = dict()
     for key, value in data["options"]:
@@ -209,7 +208,7 @@ def _get_rb_config(
     pioneer_app_dir: Path,
     major_version: int,
     application_dirname: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get the program configuration for a given Rekordbox major version.
 
     Parameters
@@ -305,7 +304,7 @@ def _get_rb_config(
 
 def _get_rb5_config(
     pioneer_prog_dir: Path, pioneer_app_dir: Path, dirname: str = ""
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get the program configuration for Rekordbox v5.x.x."""
     major_version = 5
     conf = _get_rb_config(pioneer_prog_dir, pioneer_app_dir, major_version, dirname)
@@ -314,7 +313,7 @@ def _get_rb5_config(
 
 def _get_rb6_config(
     pioneer_prog_dir: Path, pioneer_app_dir: Path, dirname: str = ""
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get the program configuration for Rekordbox v6.x.x."""
     major_version = 6
     conf = _get_rb_config(pioneer_prog_dir, pioneer_app_dir, major_version, dirname)
@@ -331,7 +330,7 @@ def _get_rb6_config(
 
 def _get_rb7_config(
     pioneer_prog_dir: Path, pioneer_app_dir: Path, dirname: str = ""
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get the program configuration for Rekordbox v7.x.x."""
     major_version = 7
     conf = _get_rb_config(pioneer_prog_dir, pioneer_app_dir, major_version, dirname)
@@ -347,8 +346,8 @@ def _get_rb7_config(
 
 
 def update_config(
-    pioneer_install_dir: Union[str, Path] = None,
-    pioneer_app_dir: Union[str, Path] = None,
+    pioneer_install_dir: str | Path | None = None,
+    pioneer_app_dir: str | Path | None = None,
     rb5_install_dirname: str = "",
     rb6_install_dirname: str = "",
     rb7_install_dirname: str = "",

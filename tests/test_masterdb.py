@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-02-01
 
 import os
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -121,7 +120,7 @@ def test_close_open():
     db.close()
 
 
-@mark.parametrize("dt", [datetime.now(), datetime.now(tz=timezone.utc)])
+@mark.parametrize("dt", [datetime.now(), datetime.now(tz=UTC)])
 def test_datetime_to_string(dt):
     datetime_to_str(dt)
 

@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-12-13
 
 import logging
-import xml.etree.cElementTree as xml
+import xml.etree.ElementTree as xml
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, IntEnum
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 from dateutil.relativedelta import relativedelta  # noqa
 from sqlalchemy import and_, not_, or_
@@ -99,7 +98,7 @@ _DATE_OPS = [
 ]
 
 # Defines the valid operators for each property
-VALID_OPS: Dict[str, Any] = {
+VALID_OPS: dict[str, Any] = {
     Property.ARTIST: _STR_OPS,
     Property.ALBUM: _STR_OPS,
     Property.ALBUM_ARTIST: _STR_OPS,
@@ -126,7 +125,7 @@ VALID_OPS: Dict[str, Any] = {
 }
 
 # Defines the column names in the DB for properties that are directly mapped
-PROPERTY_COLUMN_MAP: Dict[str, str] = {
+PROPERTY_COLUMN_MAP: dict[str, str] = {
     Property.ARTIST: "ArtistName",
     Property.ALBUM: "AlbumName",
     Property.ALBUM_ARTIST: "AlbumArtistName",
@@ -152,7 +151,7 @@ PROPERTY_COLUMN_MAP: Dict[str, str] = {
     Property.YEAR: "ReleaseYear",
 }
 
-TYPE_CONVERSION: Dict[str, Any] = {
+TYPE_CONVERSION: dict[str, Any] = {
     Property.BPM: int,
     Property.STOCK_DATE: lambda x: datetime.strptime(x, "%Y-%m-%d"),
     Property.DATE_CREATED: lambda x: datetime.strptime(x, "%Y-%m-%d"),
@@ -173,8 +172,8 @@ class Condition:
     property: str
     operator: int
     unit: str
-    value_left: Union[str, int]
-    value_right: Union[str, int]
+    value_left: str | int
+    value_right: str | int
 
     def __post_init__(self) -> None:
         if self.property not in PROPERTIES:
@@ -204,7 +203,7 @@ def right_bitshift(x: int, nbit: int = 32) -> int:
     return int(x + 2**nbit)
 
 
-def _get_condition_values(cond: Condition) -> Tuple[Any, Any]:
+def _get_condition_values(cond: Condition) -> tuple[Any, Any]:
     val_left = cond.value_left
     val_right = cond.value_right
     func = None
@@ -232,10 +231,10 @@ class SmartList:
     """Rekordbox smart playlist XML handler."""
 
     def __init__(self, logical_operator: int = LogicalOperator.ALL, auto_update: int = 0):
-        self.playlist_id: Union[int, str] = ""
+        self.playlist_id: int | str = ""
         self.logical_operator: int = int(logical_operator)
         self.auto_update: int = auto_update
-        self.conditions: List[Condition] = list()
+        self.conditions: list[Condition] = list()
 
     def parse(self, source: str) -> None:
         """Parse the XML source of a smart playlist."""

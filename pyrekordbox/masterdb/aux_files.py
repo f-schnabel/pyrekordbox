@@ -1,16 +1,15 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-09-10
 
-import xml.etree.cElementTree as xml
+import xml.etree.ElementTree as xml
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from ..config import get_config
 from ..utils import pretty_xml
 
-Attribs = Dict[str, Any]
+Attribs = dict[str, Any]
 
 
 class XmlElementNotInitializedError(Exception):
@@ -36,7 +35,7 @@ class MasterPlaylistXml:
 
     KEYS = ["Id", "ParentId", "Attributes", "Timestamp", "Lib_Type", "CheckType"]
 
-    def __init__(self, path: Union[str, Path] = None, db_dir: Union[str, Path] = None):
+    def __init__(self, path: str | Path | None = None, db_dir: str | Path | None = None):
         if path is None:
             if db_dir is None:
                 db_dir = get_config("rekordbox6", "db_dir")
@@ -67,7 +66,7 @@ class MasterPlaylistXml:
     def modified(self) -> bool:
         return self._changed
 
-    def get_playlists(self) -> List[Dict[str, Any]]:
+    def get_playlists(self) -> list[dict[str, Any]]:
         """Returns a list of the attributes of all playlist elements."""
         if self.playlists is None:
             raise XmlElementNotInitializedError("playlists")
@@ -76,7 +75,7 @@ class MasterPlaylistXml:
             items.append(playlist.attrib)
         return items
 
-    def get(self, playlist_id: Union[str, int]) -> Optional[Attribs]:
+    def get(self, playlist_id: str | int) -> Attribs | None:
         """Returns element attribs with the PlaylistID used in the `master.db` database.
 
         Parameters
@@ -155,7 +154,7 @@ class MasterPlaylistXml:
         self._changed = True
         return element
 
-    def remove(self, playlist_id: Union[str, int]) -> None:
+    def remove(self, playlist_id: str | int) -> None:
         """Removes the element with the PlaylistID used in the `master.db` database.
 
         Parameters
@@ -229,7 +228,7 @@ class MasterPlaylistXml:
         text: str = pretty_xml(self.root, indent, encoding="utf-8")
         return text
 
-    def save(self, path: Union[str, Path] = None, indent: str = None) -> None:
+    def save(self, path: str | Path | None = None, indent: str = None) -> None:
         if path is None:
             path = self.path
         path = str(path)

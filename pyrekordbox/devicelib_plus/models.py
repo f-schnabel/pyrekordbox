@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2025-08-13
 
 import re
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from enum import IntEnum
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any
 
 from sqlalchemy import (
     VARCHAR,
@@ -74,7 +74,7 @@ class FileType(IntEnum):
 
 def datetime_to_str(value: datetime) -> str:
     # Convert to UTC timezone string
-    s = value.astimezone(timezone.utc).isoformat().replace("T", " ")
+    s = value.astimezone(UTC).isoformat().replace("T", " ")
     # Get the timezone info (last 6 characters of the string)
     tzinfo = s[-6:]
     s = s[:-9] + " " + tzinfo
@@ -117,7 +117,7 @@ class DateTime(TypeDecorator):  # type: ignore[type-arg]
     def process_bind_param(self, value: datetime, dialect: Dialect) -> str:  # type: ignore[override]
         return datetime_to_str(value)
 
-    def process_result_value(self, value: str, dialect: Dialect) -> Optional[datetime]:  # type: ignore[override]
+    def process_result_value(self, value: str, dialect: Dialect) -> datetime | None:  # type: ignore[override]
         if value:
             return string_to_datetime(value)
         return None
@@ -130,7 +130,7 @@ class Base(DeclarativeBase):
     """Base class used to initialize the declarative base for all tables."""
 
     __tablename__: str
-    __keys__: List[str] = []
+    __keys__: list[str] = []
 
     @classmethod
     def create(cls, **kwargs: Any):  # type: ignore # noqa: ANN206
@@ -138,24 +138,24 @@ class Base(DeclarativeBase):
         return self
 
     @classmethod
-    def columns(cls) -> List[str]:
+    def columns(cls) -> list[str]:
         """Returns a list of all column names without the relationships."""
         return [column.name for column in inspect(cls).c]
 
     @classmethod
-    def relationships(cls) -> List[str]:
+    def relationships(cls) -> list[str]:
         """Returns a list of all relationship names."""
         return [column.key for column in inspect(cls).relationships]  # noqa
 
     @classmethod
-    def __get_keys__(cls) -> List[str]:  # pragma: no cover
+    def __get_keys__(cls) -> list[str]:  # pragma: no cover
         """Get all attributes of the table."""
         items = cls.__dict__.items()
         keys = [k for k, v in items if not callable(v) and not k.startswith("_")]
         return keys
 
     @classmethod
-    def keys(cls) -> List[str]:  # pragma: no cover
+    def keys(cls) -> list[str]:  # pragma: no cover
         """Returns a list of all column names including the relationships."""
         if not cls.__keys__:  # Cache the keys
             cls.__keys__ = cls.__get_keys__()
@@ -171,15 +171,15 @@ class Base(DeclarativeBase):
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def values(self) -> List[Any]:
+    def values(self) -> list[Any]:
         """Returns a list of all column values including the relationships."""
         return [self.__getitem__(key) for key in self.keys()]
 
-    def items(self) -> Iterator[Tuple[str, Any]]:
+    def items(self) -> Iterator[tuple[str, Any]]:
         for key in self.__iter__():
             yield key, self.__getitem__(key)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary of all column names and values."""
         return {key: self.__getitem__(key) for key in self.columns()}
 
@@ -350,15 +350,11 @@ class Content(Base):
     """The rating of the track (0-5)."""
     releaseYear: Mapped[int] = mapped_column(Integer, default=None)
     """The release year of the track."""
-    releaseDate: Mapped[Optional[datetime]] = mapped_column(DateTime, default=None)
+    releaseDate: Mapped[datetime | None] = mapped_column(DateTime, default=None)
     """The release date of the track."""
-    dateCreated: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
-    )
+    dateCreated: Mapped[datetime | None] = mapped_column(DateTime, default=datetime.now(UTC))
     """The date when the track was created."""
-    dateAdded: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
-    )
+    dateAdded: Mapped[datetime | None] = mapped_column(DateTime, default=datetime.now(UTC))
     """The date when the track was added to the library."""
     path: Mapped[str] = mapped_column(VARCHAR(255), unique=True, nullable=False)
     """The file path of the track."""
@@ -538,7 +534,7 @@ class History(Base):
     """The name of the history entry."""
     attribute: Mapped[str] = mapped_column(Text, default=None)
     """The attribute of the history playlist."""
-    history_id_parent: Mapped[Optional[int]] = mapped_column(
+    history_id_parent: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("history.history_id"), default=None
     )
     """The `history_id` of the parent :class:`History` entry of this history entry."""
@@ -726,7 +722,7 @@ class MyTag(Base):
     """The name of the custom tag."""
     attribute: Mapped[int] = mapped_column(Integer, default=None)
     """The attribute of the custom tag."""
-    myTag_id_parent: Mapped[Optional[int]] = mapped_column(
+    myTag_id_parent: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("myTag.myTag_id"), default=None
     )
 
@@ -785,7 +781,7 @@ class Playlist(Base):
     """The `image_id` of the :class:`Image` entry of the image of this playlist."""
     attribute: Mapped[int] = mapped_column(Integer, default=None)
     """The attribute of the playlist."""
-    playlist_id_parent: Mapped[Optional[int]] = mapped_column(
+    playlist_id_parent: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("playlist.playlist_id"), default=None
     )
     """The `playlist_id` of the parent :class:`Playlist` entry of this playlist."""
@@ -845,7 +841,7 @@ class Property(Base):
     """The version of the database."""
     numberOfContents: Mapped[int] = mapped_column(Integer, default=None)
     """The number of contents in the database."""
-    createdDate: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    createdDate: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
     """The date when the property was created."""
     backGroundColorType: Mapped[int] = mapped_column(Integer, default=None)
     """The background color type of the device."""
@@ -872,7 +868,7 @@ class RecommendedLike(Base):
     """The `content_id` of the second :class:`Content` entry of the recommended like."""
     rating: Mapped[int] = mapped_column(Integer, default=None)
     """The rating of the recommended like (0-5)."""
-    createdDate: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    createdDate: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
     """The date when the recommended like was created."""
 
     content_1 = relationship("Content", foreign_keys=content_id_1)

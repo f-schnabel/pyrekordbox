@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
 # Author: Dylan Jones
 # Date:   2023-02-01
 
 import logging
 from collections import abc
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator, List, Union
+from typing import Any
 
 from construct import Int16ub, Struct
 
@@ -30,15 +30,15 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
 
     def __init__(self) -> None:
         self._path: str = ""
-        self.file_header: Union[Struct, None] = None
-        self.tags: List[AbstractAnlzTag] = list()
+        self.file_header: Struct | None = None
+        self.tags: list[AbstractAnlzTag] = list()
 
     @property
     def num_tags(self) -> int:
         return len(self.tags)
 
     @property
-    def tag_types(self) -> List[str]:
+    def tag_types(self) -> list[str]:
         return [tag.type for tag in self.tags]
 
     @property
@@ -64,7 +64,7 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
         return self
 
     @classmethod
-    def parse_file(cls, path: Union[str, Path]) -> "AnlzFile":
+    def parse_file(cls, path: str | Path) -> "AnlzFile":
         """Reads and parses a Rekordbox analysis binary file.
 
         Parameters
@@ -194,7 +194,7 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
 
         return data
 
-    def save(self, path: Union[str, Path] = "") -> None:
+    def save(self, path: str | Path = "") -> None:
         path = path or self._path
 
         data = self.build()
@@ -204,13 +204,13 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
     def get_tag(self, key: str) -> AbstractAnlzTag:
         return self.__getitem__(key)[0]
 
-    def getall_tags(self, key: str) -> List[AbstractAnlzTag]:
+    def getall_tags(self, key: str) -> list[AbstractAnlzTag]:
         return self.__getitem__(key)
 
     def get(self, key: str) -> Any:  # type: ignore[override]
         return self.__getitem__(key)[0].get()
 
-    def getall(self, key: str) -> List[Any]:
+    def getall(self, key: str) -> list[Any]:
         return [tag.get() for tag in self.__getitem__(key)]
 
     def __len__(self) -> int:
@@ -222,7 +222,7 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
     def __iter__(self) -> Iterator[str]:
         return iter(set(tag.type for tag in self.tags))
 
-    def __getitem__(self, item: str) -> List[AbstractAnlzTag]:
+    def __getitem__(self, item: str) -> list[AbstractAnlzTag]:
         if item.isupper() and len(item) == 4:
             return [tag for tag in self.tags if tag.type == item]
         else:
@@ -242,6 +242,6 @@ class AnlzFile(abc.Mapping):  # type: ignore[type-arg]
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.tag_types})"
 
-    def set_path(self, path: Union[Path, str]) -> None:
+    def set_path(self, path: Path | str) -> None:
         tag = self.get_tag("PPTH")
         tag.set(path)
