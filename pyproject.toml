@@ -183,11 +183,6 @@ disallow_untyped_calls = false  # often useful to allow
 disallow_untyped_decorators = false  # decorators are often tricky
 check_untyped_defs = true
 
-plugins = [
-    "numpy.typing.mypy_plugin",
-    "sqlalchemy.ext.mypy.plugin",
-]
-
 # -- Coverage --------------------------------------------------------------------------
 
 [tool.coverage.run]
