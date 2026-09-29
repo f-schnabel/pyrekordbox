@@ -141,7 +141,6 @@ preview = true
 "*__main__.py" = ["ANN"]
 "tests/*" = ["ANN"]
 "rbxml.py" = ["N803"]
-"tables.py" = ["N802", "N815"]
 "models.py" = ["N802", "N815"]
 
 
