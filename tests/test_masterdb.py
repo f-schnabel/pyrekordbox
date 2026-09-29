@@ -15,6 +15,7 @@ from sqlalchemy.orm.query import Query
 
 from pyrekordbox import MasterDatabase
 from pyrekordbox.masterdb import models
+from pyrekordbox.masterdb.database import SessionNotInitializedError
 from pyrekordbox.masterdb.models import datetime_to_str, string_to_datetime
 from pyrekordbox.masterdb.smartlist import LogicalOperator, Operator, Property, SmartList
 
@@ -52,6 +53,7 @@ def db():
 
 def test_open_rekordbox_database():
     db = MasterDatabase(UNLOCKED, unlock=False)
+    assert db.session
     db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table';"))
     db.close()
 
@@ -108,6 +110,7 @@ def test_context_manager_closes_after_commit_error(db):
 
 def test_unlock_rekordbox_database():
     db = MasterDatabase(LOCKED, unlock=True)
+    assert db.session
     db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table';"))
     db.close()
 
@@ -115,6 +118,8 @@ def test_unlock_rekordbox_database():
 def test_close_open():
     db = MasterDatabase(UNLOCKED, unlock=False)
     db.close()
+    with pytest.raises(SessionNotInitializedError):
+        _ = db.session
     db.open()
     _ = db.get_content()[0]  # Try to query the database
     db.close()
@@ -232,9 +237,9 @@ def test_getter_by_id(name, cls):
         return
     id_ = item.ID
 
-    # Test type of result is a table class, not the query
+    # Filtering by an ID still returns a typed query.
     res = getter(ID=id_)
-    assert res is None or isinstance(res, cls)
+    assert isinstance(res.one(), cls)
 
 
 @mark.parametrize(
@@ -322,10 +327,10 @@ def test_increment_local_usn(db):
 
 def test_autoincrement_local_usn(db):
     old_usn = db.get_local_usn()  # store USN before changes
-    track1 = db.get_content(ID=CID1)
-    track2 = db.get_content(ID=CID2)
-    track3 = db.get_content(ID=CID3)
-    playlist = db.get_playlist(ID=PID1)
+    track1 = db.get_content(ID=CID1).one()
+    track2 = db.get_content(ID=CID2).one()
+    track3 = db.get_content(ID=CID3).one()
+    playlist = db.get_playlist(ID=PID1).one()
     with db.session.no_autoflush:
         # Change one field in first track (+1)
         track1.Title = "New title 1"
@@ -365,20 +370,20 @@ def _check_playlist_xml_delete(db):
         if plxml["Lib_Type"] != 0:
             continue
         pid = int(plxml["Id"], 16)
-        if db.query(models.DjmdPlaylist).filter_by(ID=pid).count() != 1:
+        if db.session.query(models.DjmdPlaylist).filter_by(ID=pid).count() != 1:
             return False
     return True
 
 
 def test_add_song_to_playlist(db):
     usn_old = db.get_local_usn()
-    mtime_old = db.get_playlist(ID=PID1).updated_at
+    mtime_old = db.get_playlist(ID=PID1).one().updated_at
 
     # test adding song to playlist
     song = db.add_to_playlist(PID1, CID1)
     db.commit()
 
-    pl = db.get_playlist(ID=PID1)
+    pl = db.get_playlist(ID=PID1).one()
     assert len(pl.Songs) == 1
     assert pl.Songs[0].ContentID == str(CID1)
     assert song.TrackNo == 1
@@ -419,14 +424,14 @@ def test_add_song_to_playlist_trackno_middle(db):
     db.commit()
 
     usn_old = db.get_local_usn()
-    mtime_old = db.get_playlist(ID=PID1).updated_at
+    mtime_old = db.get_playlist(ID=PID1).one().updated_at
 
     # Insert song in the middle
     song3 = db.add_to_playlist(PID1, CID3, track_no=2)
     db.commit()
     assert song3.TrackNo == 2
 
-    pl = db.get_playlist(ID=PID1)
+    pl = db.get_playlist(ID=PID1).one()
     songs = sorted(pl.Songs, key=lambda x: int(x.TrackNo))
     assert len(songs) == 3
     assert songs[0].ContentID == str(CID1)
@@ -456,20 +461,20 @@ def test_remove_song_from_playlist_end(db):
     db.commit()
 
     usn_old = db.get_local_usn()
-    mtime_old = db.get_playlist(ID=PID1).updated_at
+    mtime_old = db.get_playlist(ID=PID1).one().updated_at
 
     # test removing song from playlist
     db.remove_from_playlist(PID1, sid3)
     db.commit()
 
-    pl = db.get_playlist(ID=PID1)
+    pl = db.get_playlist(ID=PID1).one()
     songs = sorted(pl.Songs, key=lambda x: x.TrackNo)
     assert len(songs) == 2
     assert songs[0].ContentID == str(CID1)
     assert songs[0].TrackNo == 1
     assert songs[1].ContentID == str(CID2)
     assert songs[1].TrackNo == 2
-    pl = db.get_playlist(ID=PID1)
+    pl = db.get_playlist(ID=PID1).one()
     # Test USN and update time are correct
     assert pl.updated_at == mtime_old
     assert db.get_local_usn() == usn_old + 1
@@ -490,7 +495,7 @@ def test_remove_song_from_playlist_middle(db):
     db.remove_from_playlist(PID1, sid2)
     db.commit()
 
-    pl = db.get_playlist(ID=PID1)
+    pl = db.get_playlist(ID=PID1).one()
     songs = sorted(pl.Songs, key=lambda x: x.TrackNo)
     assert len(songs) == 2
     assert songs[0].ContentID == str(CID1)
@@ -512,7 +517,7 @@ def test_move_in_playlist_forward(db):
     s3 = db.add_to_playlist(PID1, CID3)
     s4 = db.add_to_playlist(PID1, CID4)
     db.commit()
-    pl = db.get_playlist(ID=PID1)
+    pl = db.get_playlist(ID=PID1).one()
     songs = sorted(pl.Songs, key=lambda x: x.TrackNo)
     assert [int(s.ContentID) for s in songs] == [CID1, CID2, CID3, CID4]
     usn_old = db.get_local_usn()
@@ -520,7 +525,7 @@ def test_move_in_playlist_forward(db):
     # Move song forward
     db.move_song_in_playlist(PID1, s3, 1)
     db.commit()
-    pl = db.get_playlist(ID=PID1)
+    pl = db.get_playlist(ID=PID1).one()
     songs = sorted(pl.Songs, key=lambda x: x.TrackNo)
     assert [int(s.ContentID) for s in songs] == [CID3, CID1, CID2, CID4]
 
@@ -542,7 +547,7 @@ def test_move_in_playlist_backward(db):
     s3 = db.add_to_playlist(PID1, CID3)
     s4 = db.add_to_playlist(PID1, CID4)
     db.commit()
-    pl = db.get_playlist(ID=PID1)
+    pl = db.get_playlist(ID=PID1).one()
     songs = sorted(pl.Songs, key=lambda x: x.TrackNo)
     assert [int(s.ContentID) for s in songs] == [CID1, CID2, CID3, CID4]
     usn_old = db.get_local_usn()
@@ -550,7 +555,7 @@ def test_move_in_playlist_backward(db):
     # Move song backward
     db.move_song_in_playlist(PID1, s1, 3)
     db.commit()
-    pl = db.get_playlist(ID=PID1)
+    pl = db.get_playlist(ID=PID1).one()
     songs = sorted(pl.Songs, key=lambda x: x.TrackNo)
     assert [int(s.ContentID) for s in songs] == [CID2, CID3, CID1, CID4]
 
@@ -576,7 +581,7 @@ def test_create_playlist(db):
     db.commit()
 
     # Check if playlist was created correctly
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one()
     assert pl.Name == "Test playlist"
     assert pl.Seq == 3
     assert pl.Attribute == 0
@@ -592,7 +597,7 @@ def test_create_playlist(db):
     db.add_to_playlist(pl, CID1)
     db.commit()
 
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one()
     assert len(pl.Songs) == 1
 
     # Check if playlist was added to xml
@@ -620,8 +625,8 @@ def test_create_playlist_seq_middle(db):
     pid2 = pl.ID
     db.commit()
 
-    pl1 = db.get_playlist(ID=pid1)
-    pl2 = db.get_playlist(ID=pid2)
+    pl1 = db.get_playlist(ID=pid1).one()
+    pl2 = db.get_playlist(ID=pid2).one()
     assert pl1.Seq == 4
     assert pl2.Seq == 3
     # Check USN is correct
@@ -643,7 +648,7 @@ def test_create_playlist_folder(db):
     db.commit()
 
     # Check if playlist folder was created correctly
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one()
     assert pl.Name == "Test playlist folder"
     assert pl.Seq == 3
     assert pl.Attribute == 1
@@ -658,7 +663,7 @@ def test_create_playlist_folder(db):
     db.create_playlist("Test playlist", parent=pl)
     db.commit()
 
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one()
     assert len(pl.Children) == 1
 
     assert _check_playlist_xml(db)
@@ -679,7 +684,7 @@ def test_create_smart_playlist(db):
     db.commit()
 
     # Check if playlist was created correctly
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one()
     assert pl.Name == "Smart playlist"
     assert pl.Seq == 3
     assert pl.Attribute == 4
@@ -714,7 +719,7 @@ def test_delete_playlist_empty_end(db):
     db.commit()
 
     # Check if playlist was deleted
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one_or_none()
     assert pl is None
     # Check if playlist was deleted from xml
     plxml = db.playlist_xml.get(pid)
@@ -743,7 +748,7 @@ def test_delete_playlist_empty(db):
     db.commit()
 
     # Check if playlist was deleted
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one_or_none()
     assert pl is None
     # Check if playlist was deleted from xml
     plxml = db.playlist_xml.get(pid)
@@ -776,7 +781,7 @@ def test_delete_playlist_folder_empty(db):
     db.commit()
 
     # Check if playlist was deleted
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one_or_none()
     assert pl is None
     # Check if playlist was deleted from xml
     plxml = db.playlist_xml.get(pid)
@@ -806,7 +811,7 @@ def test_delete_playlist_non_empty(db):
     db.commit()
     usn_old = db.get_local_usn()
 
-    assert db.query(models.DjmdSongPlaylist).count() == 4
+    assert db.session.query(models.DjmdSongPlaylist).count() == 4
 
     # Delete playlist
     pl = db.get_playlist(Name="sub playlist 2").one()
@@ -815,14 +820,14 @@ def test_delete_playlist_non_empty(db):
     db.commit()
 
     # Check if playlist was deleted
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one_or_none()
     assert pl is None
     # Check if songs in playlist were deleted
-    assert db.query(models.DjmdSongPlaylist).count() == 2
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid1).count() == 1
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid2).count() == 0
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid3).count() == 0
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid4).count() == 1
+    assert db.session.query(models.DjmdSongPlaylist).count() == 2
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid1).count() == 1
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid2).count() == 0
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid3).count() == 0
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid4).count() == 1
     # Check if USN is correct (+1 for deleting with contents)
     assert db.get_local_usn() == usn_old + 1
 
@@ -845,7 +850,7 @@ def test_delete_playlist_folder_non_empty(db):
     db.commit()
     usn_old = db.get_local_usn()
 
-    assert db.query(models.DjmdSongPlaylist).count() == 4
+    assert db.session.query(models.DjmdSongPlaylist).count() == 4
 
     # Delete playlist
     pl = db.get_playlist(Name="sub playlist folder").one()
@@ -857,16 +862,16 @@ def test_delete_playlist_folder_non_empty(db):
     db.commit()
 
     # Check if playlists were deleted
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one_or_none()
     assert pl is None
-    pl = db.get_playlist(ID=pid2)
+    pl = db.get_playlist(ID=pid2).one_or_none()
     assert pl is None
     # Check if songs in playlist were deleted
-    assert db.query(models.DjmdSongPlaylist).count() == 2
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid1).count() == 1
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid2).count() == 0
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid3).count() == 0
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid4).count() == 1
+    assert db.session.query(models.DjmdSongPlaylist).count() == 2
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid1).count() == 1
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid2).count() == 0
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid3).count() == 0
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid4).count() == 1
 
     # Check if USN is correct (+1 for deleting with Seq update, +1 for children)
     assert db.get_local_usn() == usn_old + 2
@@ -904,16 +909,16 @@ def test_delete_playlist_folder_chained(db):
     db.commit()
 
     # Check if all playlists and songs were deleted
-    assert db.get_playlist(ID=pid1) is None
-    assert db.get_playlist(ID=pid2) is None
-    assert db.get_playlist(ID=pid3) is None
-    assert db.get_playlist(ID=pid5) is None
-    assert db.get_playlist(ID=pid4) is None
-    assert db.get_playlist(ID=pid6) is None
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid1).count() == 0
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid2).count() == 0
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid3).count() == 0
-    assert db.query(models.DjmdSongPlaylist).filter_by(ID=sid4).count() == 0
+    assert db.get_playlist(ID=pid1).one_or_none() is None
+    assert db.get_playlist(ID=pid2).one_or_none() is None
+    assert db.get_playlist(ID=pid3).one_or_none() is None
+    assert db.get_playlist(ID=pid5).one_or_none() is None
+    assert db.get_playlist(ID=pid4).one_or_none() is None
+    assert db.get_playlist(ID=pid6).one_or_none() is None
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid1).count() == 0
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid2).count() == 0
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid3).count() == 0
+    assert db.session.query(models.DjmdSongPlaylist).filter_by(ID=sid4).count() == 0
 
     # Check all the corresponding xml entries were deleted
     assert db.playlist_xml.get(pid1) is None
@@ -1104,7 +1109,7 @@ def test_rename_playlist(db):
     db.rename_playlist(pl, "pl 1 new")
     db.commit()
 
-    pl = db.get_playlist(ID=pid)
+    pl = db.get_playlist(ID=pid).one()
     assert pl.Name == "pl 1 new"
     assert pl.updated_at >= mtime_old
     assert db.get_local_usn() == usn_old + 1
@@ -1261,7 +1266,7 @@ def test_add_content_with_multiple_devices(db):
 
 
 def test_get_anlz_paths():
-    content = DB.get_content().first()
+    content = DB.get_content(ID=CID4).one()
 
     anlz_dir = str(DB.get_anlz_dir(content)).replace("\\", "/")
     expected = r"share/PIONEER/USBANLZ/735/e8b81-e69b-41ad-80f8-9c0d7613b96d"
@@ -1287,13 +1292,13 @@ def test_copy_unlocked():
     # Check everything got copied
     for name in models.TABLES:
         table = getattr(models, name)
-        for row in db.query(table):
+        for row in db.session.query(table):
             data = row.to_dict()
             if name == "AgentRegistry":
-                query = db2.query(table).filter_by(registry_id=row.registry_id)
+                query = db2.session.query(table).filter_by(registry_id=row.registry_id)
             elif name == "DjmdProperty":
-                query = db2.query(table).filter_by(DBID=row.DBID)
+                query = db2.session.query(table).filter_by(DBID=row.DBID)
             else:
-                query = db2.query(table).filter_by(ID=row.ID)
+                query = db2.session.query(table).filter_by(ID=row.ID)
             data2 = query.one().to_dict()
             assert data == data2

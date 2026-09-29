@@ -7,11 +7,10 @@ import secrets
 from collections.abc import Callable
 from pathlib import Path
 from types import TracebackType
-from typing import Any
+from typing import Any, overload
 from uuid import uuid4
 
 from sqlalchemy import MetaData, create_engine, event, or_, select
-from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Query, Session
 from sqlalchemy.sql.sqltypes import DateTime, String
 
@@ -42,19 +41,9 @@ BLOB = b"PN_Pq^*N>(JYe*u^8;Yg76HuZ<mR13S?=>)b9;DpoTXV(6ItkU`}8*m6tx_I{Solh_N#dfe
 
 logger = logging.getLogger(__name__)
 
-PathLike = str | Path
-ContentLike = DjmdContent | int | str
-PlaylistLike = DjmdPlaylist | int | str
-
-
-def _parse_query_result[T: models.Base](query: Query[T], kwargs: dict[str, Any]) -> Any:
-    if "ID" in kwargs or "registry_id" in kwargs:
-        try:
-            result: T = query.one()
-            return result
-        except NoResultFound:
-            return None
-    return query
+type PathLike = str | Path
+type ContentLike = DjmdContent | int | str
+type PlaylistLike = DjmdPlaylist | int | str
 
 
 class SessionNotInitializedError(Exception):
@@ -116,7 +105,7 @@ class MasterDatabase:
 
     def __init__(
         self,
-        path: PathLike = None,
+        path: PathLike | None = None,
         db_dir: PathLike = "",
         key: str = "",
         unlock: bool = True,
@@ -167,7 +156,7 @@ class MasterDatabase:
 
         self.engine = engine
         self.autocommit = autocommit
-        self.session: Session | None = None
+        self._session: Session | None = None
 
         self.registry = RekordboxAgentRegistry(self)
         self._events: dict[str, Callable[[Any], None]] = dict()
@@ -184,10 +173,15 @@ class MasterDatabase:
         self.open()
 
     @property
+    def session(self) -> Session:
+        """Active SQLAlchemy session."""
+        if self._session is None:
+            raise SessionNotInitializedError()
+        return self._session
+
+    @property
     def no_autoflush(self) -> Any:
         """Creates a no-autoflush context."""
-        if self.session is None:
-            raise SessionNotInitializedError()
         return self.session.no_autoflush
 
     @property
@@ -209,19 +203,17 @@ class MasterDatabase:
         >>> db.close()
         >>> db.open()
         """
-        if self.session is None:
-            self.session = Session(bind=self.engine)
+        if self._session is None:
+            self._session = Session(bind=self.engine)
             self.registry.clear_buffer()
 
     def close(self) -> None:
         """Close the currently active session."""
-        if self.session is None:
-            raise SessionNotInitializedError()
         for key in self._events:
             self.unregister_event(key)
         self.registry.clear_buffer()
         self.session.close()
-        self.session = None
+        self._session = None
 
     def __enter__(self) -> "MasterDatabase":
         return self
@@ -252,8 +244,6 @@ class MasterDatabase:
         fn : callable
             The event callback method.
         """
-        if self.session is None:
-            raise SessionNotInitializedError()
         event.listen(self.session, identifier, fn)
         self._events[identifier] = fn
 
@@ -265,41 +255,8 @@ class MasterDatabase:
         identifier : str
             The identifier of the event
         """
-        if self.session is None:
-            raise SessionNotInitializedError()
         fn = self._events[identifier]
         event.remove(self.session, identifier, fn)
-
-    def query(self, *entities: Any, **kwargs: Any) -> Any:
-        """Creates a new SQL query for the given entities.
-
-        Parameters
-        ----------
-        *entities : Base
-            The table objects for which the query is created.
-        **kwargs
-            Arbitrary keyword arguments used for creating the query.
-
-        Returns
-        -------
-        query : sqlalchemy.orm.query.Query
-            The SQLAlchemy ``Query`` object.
-
-        Examples
-        --------
-        Query the ``DjmdContent`` table
-
-        >>> db = MasterDatabase()
-        >>> query = db.query(DjmdContent)
-
-        Query the `Title` attribute of the ``DjmdContent`` table
-
-        >>> db = MasterDatabase()
-        >>> query = db.query(DjmdContent.Title)
-        """
-        if self.session is None:
-            raise SessionNotInitializedError()
-        return self.session.query(*entities, **kwargs)
 
     def add(self, instance: models.Base) -> None:
         """Add an element to the Rekordbox database.
@@ -309,8 +266,6 @@ class MasterDatabase:
         instance : models.Base
             The table entry to add.
         """
-        if self.session is None:
-            raise SessionNotInitializedError()
         self.session.add(instance)
         self.registry.on_create(instance)
 
@@ -322,8 +277,6 @@ class MasterDatabase:
         instance : models.Base
             The table entry to delte.
         """
-        if self.session is None:
-            raise SessionNotInitializedError()
         self.session.delete(instance)
         self.registry.on_delete(instance)
 
@@ -411,8 +364,6 @@ class MasterDatabase:
 
     def flush(self) -> None:
         """Flushes the buffer of the SQLAlchemy session instance."""
-        if self.session is None:
-            raise SessionNotInitializedError()
         self.session.flush()
 
     def commit(self, autoinc: bool = True) -> None:
@@ -428,8 +379,6 @@ class MasterDatabase:
         --------
         autoincrement_usn : Auto-increments the local Rekordbox USN's.
         """
-        if self.session is None:
-            raise SessionNotInitializedError()
         pid = get_rekordbox_pid()
         if pid:
             raise RuntimeError("Rekordbox is running. Please close Rekordbox before commiting changes.")
@@ -464,42 +413,34 @@ class MasterDatabase:
 
     def rollback(self) -> None:
         """Rolls back the uncommited changes to the database."""
-        if self.session is None:
-            raise SessionNotInitializedError()
         self.session.rollback()
         self.registry.clear_buffer()
 
     # -- Table queries -----------------------------------------------------------------
 
-    def get_active_censor(self, **kwargs: Any) -> Any:
+    def get_active_censor(self, **kwargs: Any) -> Query[models.DjmdActiveCensor]:
         """Creates a filtered query for the ``DjmdActiveCensor`` table."""
-        query = self.query(models.DjmdActiveCensor).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdActiveCensor).filter_by(**kwargs)
 
-    def get_album(self, **kwargs: Any) -> Any:
+    def get_album(self, **kwargs: Any) -> Query[models.DjmdAlbum]:
         """Creates a filtered query for the ``DjmdAlbum`` table."""
-        query = self.query(models.DjmdAlbum).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdAlbum).filter_by(**kwargs)
 
-    def get_artist(self, **kwargs: Any) -> Any:
+    def get_artist(self, **kwargs: Any) -> Query[models.DjmdArtist]:
         """Creates a filtered query for the ``DjmdArtist`` table."""
-        query = self.query(models.DjmdArtist).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdArtist).filter_by(**kwargs)
 
-    def get_category(self, **kwargs: Any) -> Any:
+    def get_category(self, **kwargs: Any) -> Query[models.DjmdCategory]:
         """Creates a filtered query for the ``DjmdCategory`` table."""
-        query = self.query(models.DjmdCategory).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdCategory).filter_by(**kwargs)
 
-    def get_color(self, **kwargs: Any) -> Any:
+    def get_color(self, **kwargs: Any) -> Query[models.DjmdColor]:
         """Creates a filtered query for the ``DjmdColor`` table."""
-        query = self.query(models.DjmdColor).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdColor).filter_by(**kwargs)
 
-    def get_content(self, **kwargs: Any) -> Any:
+    def get_content(self, **kwargs: Any) -> Query[models.DjmdContent]:
         """Creates a filtered query for the ``DjmdContent`` table."""
-        query = self.query(models.DjmdContent).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdContent).filter_by(**kwargs)
 
     # noinspection PyUnresolvedReferences
     def search_content(self, text: str) -> list[DjmdContent]:
@@ -528,7 +469,7 @@ class MasterDatabase:
             The resulting content elements.
         """
         # Search standard columns
-        query = self.query(models.DjmdContent).filter(
+        query = self.session.query(models.DjmdContent).filter(
             or_(
                 DjmdContent.Title.contains(text),
                 DjmdContent.Commnt.contains(text),
@@ -540,101 +481,98 @@ class MasterDatabase:
         # Search artist (Artist, OrgArtist, Composer and Remixer)
         artist_attrs = ["Artist", "OrgArtist", "Composer", "Remixer"]
         for attr in artist_attrs:
-            query = self.query(DjmdContent).join(getattr(DjmdContent, attr))
+            query = self.session.query(DjmdContent).join(getattr(DjmdContent, attr))
             results.update(query.filter(models.DjmdArtist.Name.contains(text)).all())
 
         # Search album
-        query = self.query(DjmdContent).join(DjmdContent.Album)
+        query = self.session.query(DjmdContent).join(DjmdContent.Album)
         results.update(query.filter(models.DjmdAlbum.Name.contains(text)).all())
 
         # Search Genre
-        query = self.query(DjmdContent).join(DjmdContent.Genre)
+        query = self.session.query(DjmdContent).join(DjmdContent.Genre)
         results.update(query.filter(models.DjmdGenre.Name.contains(text)).all())
 
         # Search Key
-        query = self.query(DjmdContent).join(DjmdContent.Key)
+        query = self.session.query(DjmdContent).join(DjmdContent.Key)
         results.update(query.filter(models.DjmdKey.ScaleName.contains(text)).all())
 
         result_list: list[DjmdContent] = list(results)
         result_list.sort(key=lambda x: x.ID)
         return result_list
 
-    def get_cue(self, **kwargs: Any) -> Any:
+    def get_cue(self, **kwargs: Any) -> Query[models.DjmdCue]:
         """Creates a filtered query for the ``DjmdCue`` table."""
-        query = self.query(models.DjmdCue).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdCue).filter_by(**kwargs)
 
-    def get_device(self, **kwargs: Any) -> Any:
+    def get_device(self, **kwargs: Any) -> Query[models.DjmdDevice]:
         """Creates a filtered query for the ``DjmdDevice`` table."""
-        query = self.query(models.DjmdDevice).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdDevice).filter_by(**kwargs)
 
-    def get_genre(self, **kwargs: Any) -> Any:
+    def get_genre(self, **kwargs: Any) -> Query[models.DjmdGenre]:
         """Creates a filtered query for the ``DjmdGenre`` table."""
-        query = self.query(models.DjmdGenre).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdGenre).filter_by(**kwargs)
 
-    def get_history(self, **kwargs: Any) -> Any:
+    def get_history(self, **kwargs: Any) -> Query[models.DjmdHistory]:
         """Creates a filtered query for the ``DjmdHistory`` table."""
-        query = self.query(models.DjmdHistory).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdHistory).filter_by(**kwargs)
 
-    def get_history_songs(self, **kwargs: Any) -> Any:
+    def get_history_songs(self, **kwargs: Any) -> Query[models.DjmdSongHistory]:
         """Creates a filtered query for the ``DjmdSongHistory`` table."""
-        query = self.query(models.DjmdSongHistory).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdSongHistory).filter_by(**kwargs)
 
-    def get_hot_cue_banklist(self, **kwargs: Any) -> Any:
+    def get_hot_cue_banklist(self, **kwargs: Any) -> Query[models.DjmdHotCueBanklist]:
         """Creates a filtered query for the ``DjmdHotCueBanklist`` table."""
-        query = self.query(models.DjmdHotCueBanklist).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdHotCueBanklist).filter_by(**kwargs)
 
-    def get_hot_cue_banklist_songs(self, **kwargs: Any) -> Any:
+    def get_hot_cue_banklist_songs(self, **kwargs: Any) -> Query[models.DjmdSongHotCueBanklist]:
         """Creates a filtered query for the ``DjmdSongHotCueBanklist`` table."""
-        query = self.query(models.DjmdSongHotCueBanklist).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdSongHotCueBanklist).filter_by(**kwargs)
 
-    def get_key(self, **kwargs: Any) -> Any:
+    def get_key(self, **kwargs: Any) -> Query[models.DjmdKey]:
         """Creates a filtered query for the ``DjmdKey`` table."""
-        query = self.query(models.DjmdKey).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdKey).filter_by(**kwargs)
 
-    def get_label(self, **kwargs: Any) -> Any:
+    def get_label(self, **kwargs: Any) -> Query[models.DjmdLabel]:
         """Creates a filtered query for the ``DjmdLabel`` table."""
-        query = self.query(models.DjmdLabel).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdLabel).filter_by(**kwargs)
 
-    def get_menu_items(self, **kwargs: Any) -> Any:
+    def get_menu_items(self, **kwargs: Any) -> Query[models.DjmdMenuItems]:
         """Creates a filtered query for the ``DjmdMenuItems`` table."""
-        query = self.query(models.DjmdMenuItems).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdMenuItems).filter_by(**kwargs)
 
-    def get_mixer_param(self, **kwargs: Any) -> Any:
+    def get_mixer_param(self, **kwargs: Any) -> Query[models.DjmdMixerParam]:
         """Creates a filtered query for the ``DjmdMixerParam`` table."""
-        query = self.query(models.DjmdMixerParam).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdMixerParam).filter_by(**kwargs)
 
-    def get_my_tag(self, **kwargs: Any) -> Any:
+    def get_my_tag(self, **kwargs: Any) -> Query[models.DjmdMyTag]:
         """Creates a filtered query for the ``DjmdMyTag`` table."""
-        query = self.query(models.DjmdMyTag).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdMyTag).filter_by(**kwargs)
 
-    def get_my_tag_songs(self, **kwargs: Any) -> Any:
+    def get_my_tag_songs(self, **kwargs: Any) -> Query[models.DjmdSongMyTag]:
         """Creates a filtered query for the ``DjmdSongMyTag`` table."""
-        query = self.query(models.DjmdSongMyTag).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdSongMyTag).filter_by(**kwargs)
 
-    def get_playlist(self, **kwargs: Any) -> Any:
+    def get_playlist(self, **kwargs: Any) -> Query[models.DjmdPlaylist]:
         """Creates a filtered query for the ``DjmdPlaylist`` table."""
-        query = self.query(models.DjmdPlaylist).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdPlaylist).filter_by(**kwargs)
 
-    def get_playlist_songs(self, **kwargs: Any) -> Any:
+    def get_playlist_songs(self, **kwargs: Any) -> Query[models.DjmdSongPlaylist]:
         """Creates a filtered query for the ``DjmdSongPlaylist`` table."""
-        query = self.query(models.DjmdSongPlaylist).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdSongPlaylist).filter_by(**kwargs)
 
-    def get_playlist_contents(self, playlist: PlaylistLike, *entities: models.Base) -> Any:
+    @overload
+    def get_playlist_contents(self, playlist: PlaylistLike) -> Query[DjmdContent]:
+        pass
+
+    @overload
+    def get_playlist_contents[T](self, playlist: PlaylistLike, entity: type[T], /) -> Query[T]:
+        pass
+
+    @overload
+    def get_playlist_contents(self, playlist: PlaylistLike, *entities: Any) -> Query[Any]:
+        pass
+
+    def get_playlist_contents(self, playlist: PlaylistLike, *entities: Any) -> Query[Any]:
         """Return the contents of a regular or smart playlist.
 
         Parameters
@@ -668,7 +606,7 @@ class MasterDatabase:
         """
         plist: DjmdPlaylist
         if isinstance(playlist, (int, str)):
-            plist = self.get_playlist(ID=playlist)
+            plist = self.get_playlist(ID=playlist).one()
         else:
             plist = playlist
 
@@ -676,101 +614,84 @@ class MasterDatabase:
             raise ValueError(f"Playlist {plist} is a playlist folder.")
 
         if not entities:
-            entities = [
-                DjmdContent,
-            ]  # type: ignore[assignment]
+            entities = (DjmdContent,)
 
         if plist.is_smart_playlist:
             smartlist = SmartList()
             smartlist.parse(plist.SmartList)
             filter_clause = smartlist.filter_clause()
         else:
-            sub_query = self.query(models.DjmdSongPlaylist.ContentID).filter(
+            sub_query = self.session.query(models.DjmdSongPlaylist.ContentID).filter(
                 models.DjmdSongPlaylist.PlaylistID == plist.ID
             )
             filter_clause = DjmdContent.ID.in_(select(sub_query.subquery()))
 
-        return self.query(*entities).filter(filter_clause)
+        query: Query[Any] = self.session.query(*entities)
+        return query.filter(filter_clause)
 
-    def get_property(self, **kwargs: Any) -> Any:
+    def get_property(self, **kwargs: Any) -> Query[models.DjmdProperty]:
         """Creates a filtered query for the ``DjmdProperty`` table."""
-        query = self.query(models.DjmdProperty).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdProperty).filter_by(**kwargs)
 
-    def get_related_tracks(self, **kwargs: Any) -> Any:
+    def get_related_tracks(self, **kwargs: Any) -> Query[models.DjmdRelatedTracks]:
         """Creates a filtered query for the ``DjmdRelatedTracks`` table."""
-        query = self.query(models.DjmdRelatedTracks).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdRelatedTracks).filter_by(**kwargs)
 
-    def get_related_tracks_songs(self, **kwargs: Any) -> Any:
+    def get_related_tracks_songs(self, **kwargs: Any) -> Query[models.DjmdSongRelatedTracks]:
         """Creates a filtered query for the ``DjmdSongRelatedTracks`` table."""
-        query = self.query(models.DjmdSongRelatedTracks).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdSongRelatedTracks).filter_by(**kwargs)
 
-    def get_sampler(self, **kwargs: Any) -> Any:
+    def get_sampler(self, **kwargs: Any) -> Query[models.DjmdSampler]:
         """Creates a filtered query for the ``DjmdSampler`` table."""
-        query = self.query(models.DjmdSampler).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdSampler).filter_by(**kwargs)
 
-    def get_sampler_songs(self, **kwargs: Any) -> Any:
+    def get_sampler_songs(self, **kwargs: Any) -> Query[models.DjmdSongSampler]:
         """Creates a filtered query for the ``DjmdSongSampler`` table."""
-        query = self.query(models.DjmdSongSampler).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdSongSampler).filter_by(**kwargs)
 
-    def get_tag_list_songs(self, **kwargs: Any) -> Any:
+    def get_tag_list_songs(self, **kwargs: Any) -> Query[models.DjmdSongTagList]:
         """Creates a filtered query for the ``DjmdSongTagList`` table."""
-        query = self.query(models.DjmdSongTagList).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdSongTagList).filter_by(**kwargs)
 
-    def get_sort(self, **kwargs: Any) -> Any:
+    def get_sort(self, **kwargs: Any) -> Query[models.DjmdSort]:
         """Creates a filtered query for the ``DjmdSort`` table."""
-        query = self.query(models.DjmdSort).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.DjmdSort).filter_by(**kwargs)
 
-    def get_agent_registry(self, **kwargs: Any) -> Any:
+    def get_agent_registry(self, **kwargs: Any) -> Query[models.AgentRegistry]:
         """Creates a filtered query for the ``AgentRegistry`` table."""
-        query = self.query(models.AgentRegistry).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.AgentRegistry).filter_by(**kwargs)
 
-    def get_cloud_agent_registry(self, **kwargs: Any) -> Any:
+    def get_cloud_agent_registry(self, **kwargs: Any) -> Query[models.CloudAgentRegistry]:
         """Creates a filtered query for the ``CloudAgentRegistry`` table."""
-        query = self.query(models.CloudAgentRegistry).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.CloudAgentRegistry).filter_by(**kwargs)
 
-    def get_content_active_censor(self, **kwargs: Any) -> Any:
+    def get_content_active_censor(self, **kwargs: Any) -> Query[models.ContentActiveCensor]:
         """Creates a filtered query for the ``ContentActiveCensor`` table."""
-        query = self.query(models.ContentActiveCensor).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.ContentActiveCensor).filter_by(**kwargs)
 
-    def get_content_cue(self, **kwargs: Any) -> Any:
+    def get_content_cue(self, **kwargs: Any) -> Query[models.ContentCue]:
         """Creates a filtered query for the ``ContentCue`` table."""
-        query = self.query(models.ContentCue).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.ContentCue).filter_by(**kwargs)
 
-    def get_content_file(self, **kwargs: Any) -> Any:
+    def get_content_file(self, **kwargs: Any) -> Query[models.ContentFile]:
         """Creates a filtered query for the ``ContentFile`` table."""
-        query = self.query(models.ContentFile).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.ContentFile).filter_by(**kwargs)
 
-    def get_hot_cue_banklist_cue(self, **kwargs: Any) -> Any:
+    def get_hot_cue_banklist_cue(self, **kwargs: Any) -> Query[models.HotCueBanklistCue]:
         """Creates a filtered query for the ``HotCueBanklistCue`` table."""
-        query = self.query(models.HotCueBanklistCue).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.HotCueBanklistCue).filter_by(**kwargs)
 
-    def get_image_file(self, **kwargs: Any) -> Any:
+    def get_image_file(self, **kwargs: Any) -> Query[models.ImageFile]:
         """Creates a filtered query for the ``ImageFile`` table."""
-        query = self.query(models.ImageFile).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.ImageFile).filter_by(**kwargs)
 
-    def get_setting_file(self, **kwargs: Any) -> Any:
+    def get_setting_file(self, **kwargs: Any) -> Query[models.SettingFile]:
         """Creates a filtered query for the ``SettingFile`` table."""
-        query = self.query(models.SettingFile).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.SettingFile).filter_by(**kwargs)
 
-    def get_uuid_map(self, **kwargs: Any) -> Any:
+    def get_uuid_map(self, **kwargs: Any) -> Query[models.UuidIDMap]:
         """Creates a filtered query for the ``UuidIDMap`` table."""
-        query = self.query(models.UuidIDMap).filter_by(**kwargs)
-        return _parse_query_result(query, kwargs)
+        return self.session.query(models.UuidIDMap).filter_by(**kwargs)
 
     # -- Database updates --------------------------------------------------------------
 
@@ -787,15 +708,15 @@ class MasterDatabase:
                 continue
             # Check if ID is already used
             id_field = getattr(table, id_field_name)
-            query = self.query(id_field).filter(id_field == id_)
-            used = self.query(query.exists()).scalar()
+            query = self.session.query(id_field).filter(id_field == id_)
+            used = self.session.query(query.exists()).scalar()
             if not used:
                 return id_
 
         raise ValueError("Could not generate unused ID")
 
     def add_to_playlist(
-        self, playlist: PlaylistLike, content: ContentLike, track_no: int = None
+        self, playlist: PlaylistLike, content: ContentLike, track_no: int | None = None
     ) -> models.DjmdSongPlaylist:
         """Adds a track to a playlist.
 
@@ -843,12 +764,12 @@ class MasterDatabase:
         plist: DjmdPlaylist
         cont: DjmdContent
         if isinstance(playlist, (int, str)):
-            plist = self.get_playlist(ID=playlist)
+            plist = self.get_playlist(ID=playlist).one()
         else:
             plist = playlist
 
         if isinstance(content, (int, str)):
-            cont = self.get_content(ID=content)
+            cont = self.get_content(ID=content).one()
         else:
             cont = content
 
@@ -859,7 +780,7 @@ class MasterDatabase:
         uuid = str(uuid4())
         id_ = str(uuid4())
         now = datetime.datetime.now()
-        nsongs = self.query(models.DjmdSongPlaylist).filter_by(PlaylistID=plist.ID).count()
+        nsongs = self.session.query(models.DjmdSongPlaylist).filter_by(PlaylistID=plist.ID).count()
         if track_no is not None:
             insert_at_end = False
             track_no = int(track_no)
@@ -886,7 +807,7 @@ class MasterDatabase:
             self.registry.disable_tracking()
             # Update track numbers higher than the removed track
             query = (
-                self.query(models.DjmdSongPlaylist)
+                self.session.query(models.DjmdSongPlaylist)
                 .filter(
                     models.DjmdSongPlaylist.PlaylistID == plist.ID,
                     models.DjmdSongPlaylist.TrackNo >= track_no,
@@ -945,12 +866,12 @@ class MasterDatabase:
         plist: DjmdPlaylist
         plist_song: DjmdSongPlaylist
         if isinstance(playlist, (int, str)):
-            plist = self.get_playlist(ID=playlist)
+            plist = self.get_playlist(ID=playlist).one()
         else:
             plist = playlist
 
         if isinstance(song, (int, str)):
-            plist_song = self.query(models.DjmdSongPlaylist).filter_by(ID=song).one()
+            plist_song = self.session.query(models.DjmdSongPlaylist).filter_by(ID=song).one()
         else:
             plist_song = song
 
@@ -965,7 +886,7 @@ class MasterDatabase:
         self.commit()
         # Update track numbers higher than the removed track
         query = (
-            self.query(models.DjmdSongPlaylist)
+            self.session.query(models.DjmdSongPlaylist)
             .filter(
                 models.DjmdSongPlaylist.PlaylistID == plist.ID,
                 models.DjmdSongPlaylist.TrackNo > track_no,
@@ -1032,16 +953,16 @@ class MasterDatabase:
         plist: DjmdPlaylist
         plist_song: DjmdSongPlaylist
         if isinstance(playlist, (int, str)):
-            plist = self.get_playlist(ID=playlist)
+            plist = self.get_playlist(ID=playlist).one()
         else:
             plist = playlist
 
         if isinstance(song, (int, str)):
-            plist_song = self.query(models.DjmdSongPlaylist).filter_by(ID=song).one()
+            plist_song = self.session.query(models.DjmdSongPlaylist).filter_by(ID=song).one()
         else:
             plist_song = song
 
-        nsongs = self.query(models.DjmdSongPlaylist).filter_by(PlaylistID=plist.ID).count()
+        nsongs = self.session.query(models.DjmdSongPlaylist).filter_by(PlaylistID=plist.ID).count()
         if new_track_no < 1:
             raise ValueError("Track number must be greater than 0")
         if new_track_no > nsongs + 1:
@@ -1059,7 +980,7 @@ class MasterDatabase:
         moved = list()
         if new_track_no > old_track_no:
             query = (
-                self.query(models.DjmdSongPlaylist)
+                self.session.query(models.DjmdSongPlaylist)
                 .filter(
                     models.DjmdSongPlaylist.PlaylistID == plist.ID,
                     old_track_no < models.DjmdSongPlaylist.TrackNo,
@@ -1072,7 +993,7 @@ class MasterDatabase:
                 other_song.updated_at = now
                 moved.append(other_song)
         elif new_track_no < old_track_no:
-            query = self.query(models.DjmdSongPlaylist).filter(
+            query = self.session.query(models.DjmdSongPlaylist).filter(
                 models.DjmdSongPlaylist.PlaylistID == plist.ID,
                 new_track_no <= models.DjmdSongPlaylist.TrackNo,
                 models.DjmdSongPlaylist.TrackNo < old_track_no,
@@ -1086,7 +1007,7 @@ class MasterDatabase:
 
         plist_song.TrackNo = new_track_no
         plist_song.updated_at = now
-        moved.append(song)
+        moved.append(plist_song)
 
         self.registry.enable_tracking()
         self.registry.on_move(moved)
@@ -1098,7 +1019,7 @@ class MasterDatabase:
         image_path: str | None,
         parent: PlaylistLike | None,
         smart_list: SmartList | None = None,
-        attribute: int = None,
+        attribute: int | None = None,
     ) -> DjmdPlaylist:
         """Creates a new playlist object."""
         table = models.DjmdPlaylist
@@ -1124,8 +1045,8 @@ class MasterDatabase:
         else:
             # Check if parent exists and is a folder
             parent_id = str(parent)
-            query = self.query(table.ID).filter(table.ID == parent_id, table.Attribute == 1)
-            if not self.query(query.exists()).scalar():
+            parent_query = self.session.query(table.ID).filter(table.ID == parent_id, table.Attribute == 1)
+            if not self.session.query(parent_query.exists()).scalar():
                 raise ValueError("Parent does not exist or is not a folder")
 
         n = self.get_playlist(ParentID=parent_id).count()
@@ -1154,7 +1075,7 @@ class MasterDatabase:
 
         # Update seq numbers higher than the new seq number
         if not insert_at_end:
-            query = self.query(models.DjmdPlaylist).filter(
+            query = self.session.query(models.DjmdPlaylist).filter(
                 models.DjmdPlaylist.ParentID == parent_id,
                 models.DjmdPlaylist.Seq >= seq,
             )
@@ -1188,7 +1109,7 @@ class MasterDatabase:
         return playlist
 
     def create_playlist(
-        self, name: str, parent: PlaylistLike = None, seq: int = None, image_path: str = None
+        self, name: str, parent: PlaylistLike | None = None, seq: int | None = None, image_path: str | None = None
     ) -> DjmdPlaylist:
         """Creates a new playlist in the database.
 
@@ -1236,7 +1157,7 @@ class MasterDatabase:
         return self._create_playlist(name, seq, image_path, parent, attribute=PlaylistType.PLAYLIST)
 
     def create_playlist_folder(
-        self, name: str, parent: PlaylistLike = None, seq: int = None, image_path: str = None
+        self, name: str, parent: PlaylistLike | None = None, seq: int | None = None, image_path: str | None = None
     ) -> DjmdPlaylist:
         """Creates a new playlist folder in the database.
 
@@ -1281,9 +1202,9 @@ class MasterDatabase:
         self,
         name: str,
         smart_list: SmartList,
-        parent: PlaylistLike = None,
-        seq: int = None,
-        image_path: str = None,
+        parent: PlaylistLike | None = None,
+        seq: int | None = None,
+        image_path: str | None = None,
     ) -> DjmdPlaylist:
         """Creates a new smart playlist in the database.
 
@@ -1351,7 +1272,7 @@ class MasterDatabase:
         """
         plist: DjmdPlaylist
         if isinstance(playlist, (int, str)):
-            plist = self.get_playlist(ID=playlist)
+            plist = self.get_playlist(ID=playlist).one()
         else:
             plist = playlist
         if not isinstance(plist, DjmdPlaylist):
@@ -1369,7 +1290,7 @@ class MasterDatabase:
         self.registry.disable_tracking()
         # Update seq numbers higher than the deleted seq number
         query = (
-            self.query(models.DjmdPlaylist)
+            self.session.query(models.DjmdPlaylist)
             .filter(
                 models.DjmdPlaylist.ParentID == parent_id,
                 models.DjmdPlaylist.Seq > seq,
@@ -1408,7 +1329,7 @@ class MasterDatabase:
             self.registry.on_delete(child_ids[1:])
         self.registry.on_delete(moved)
 
-    def move_playlist(self, playlist: PlaylistLike, parent: PlaylistLike = None, seq: int = None) -> None:
+    def move_playlist(self, playlist: PlaylistLike, parent: PlaylistLike | None = None, seq: int | None = None) -> None:
         """Moves a playlist (folder) in the current parent folder or to a new one.
 
         Parameters
@@ -1458,7 +1379,7 @@ class MasterDatabase:
         seqence: int
 
         if isinstance(playlist, (int, str)):
-            plist = self.get_playlist(ID=playlist)
+            plist = self.get_playlist(ID=playlist).one()
         else:
             plist = playlist
         now = datetime.datetime.now()
@@ -1475,8 +1396,8 @@ class MasterDatabase:
         else:
             # Check if parent exists and is a folder
             parent_id = str(parent)
-            query = self.query(table.ID).filter(table.ID == parent_id, table.Attribute == 1)
-            if not self.query(query.exists()).scalar():
+            parent_query = self.session.query(table.ID).filter(table.ID == parent_id, table.Attribute == 1)
+            if not self.session.query(parent_query.exists()).scalar():
                 raise ValueError("Parent does not exist or is not a folder")
 
         n = self.get_playlist(ParentID=parent_id).count()
@@ -1502,7 +1423,7 @@ class MasterDatabase:
             if not insert_at_end:
                 # Get all playlists with seq between old_seq and seq
                 query = (
-                    self.query(models.DjmdPlaylist)
+                    self.session.query(models.DjmdPlaylist)
                     .filter(
                         models.DjmdPlaylist.ParentID == parent_id,
                         models.DjmdPlaylist.Seq >= seq,
@@ -1531,7 +1452,7 @@ class MasterDatabase:
             # USN is not updated here
             self.registry.disable_tracking()
             query = (
-                self.query(models.DjmdPlaylist)
+                self.session.query(models.DjmdPlaylist)
                 .filter(
                     models.DjmdPlaylist.ParentID == old_parent_id,
                     models.DjmdPlaylist.Seq > old_seq,
@@ -1557,7 +1478,7 @@ class MasterDatabase:
             if seqence > old_seq:
                 # Get all playlists with seq between old_seq and seq
                 query = (
-                    self.query(models.DjmdPlaylist)
+                    self.session.query(models.DjmdPlaylist)
                     .filter(
                         models.DjmdPlaylist.ParentID == plist.ParentID,
                         old_seq < models.DjmdPlaylist.Seq,
@@ -1569,7 +1490,7 @@ class MasterDatabase:
                 delta_seq = -1
             elif seqence < old_seq:
                 query = (
-                    self.query(models.DjmdPlaylist)
+                    self.session.query(models.DjmdPlaylist)
                     .filter(
                         models.DjmdPlaylist.ParentID == plist.ParentID,
                         seqence <= models.DjmdPlaylist.Seq,
@@ -1626,7 +1547,7 @@ class MasterDatabase:
         """
         pl: DjmdPlaylist
         if isinstance(playlist, (int, str)):
-            pl = self.get_playlist(ID=playlist)
+            pl = self.get_playlist(ID=playlist).one()
         else:
             pl = playlist
 
@@ -1641,9 +1562,9 @@ class MasterDatabase:
         self,
         name: str,
         artist: models.DjmdArtist | int | str | None = None,
-        image_path: PathLike = None,
-        compilation: bool = None,
-        search_str: str = None,
+        image_path: PathLike | None = None,
+        compilation: bool | None = None,
+        search_str: str | None = None,
     ) -> models.DjmdAlbum:
         """Adds a new album to the database.
 
@@ -1703,16 +1624,16 @@ class MasterDatabase:
         if artist is not None:
             art: models.DjmdArtist
             if isinstance(artist, (int, str)):
-                art = self.get_artist(ID=artist)
+                art = self.get_artist(ID=artist).one()
             else:
                 art = artist
             artist_id = art.ID
 
         # Check if album already exists
         if artist_id:
-            query = self.query(models.DjmdAlbum).filter_by(Name=name, AlbumArtistID=artist_id)
+            query = self.session.query(models.DjmdAlbum).filter_by(Name=name, AlbumArtistID=artist_id)
         else:
-            query = self.query(models.DjmdAlbum).filter_by(Name=name)
+            query = self.session.query(models.DjmdAlbum).filter_by(Name=name)
         if query.count() > 0:
             raise ValueError(f"Album '{name}' already exists in database")
 
@@ -1731,7 +1652,7 @@ class MasterDatabase:
         self.flush()
         return album
 
-    def add_artist(self, name: str, search_str: str = None) -> models.DjmdArtist:
+    def add_artist(self, name: str, search_str: str | None = None) -> models.DjmdArtist:
         """Adds a new artist to the database.
 
         Parameters
@@ -1777,7 +1698,7 @@ class MasterDatabase:
         >>> content.ArtistID = artist.ID
         """
         # Check if artist already exists
-        query = self.query(models.DjmdArtist).filter_by(Name=name)
+        query = self.session.query(models.DjmdArtist).filter_by(Name=name)
         if query.count() > 0:
             raise ValueError(f"Artist '{name}' already exists in database")
 
@@ -1827,7 +1748,7 @@ class MasterDatabase:
         >>> content.GenreID = genre.ID
         """
         # Check if genre already exists
-        query = self.query(models.DjmdGenre).filter_by(Name=name)
+        query = self.session.query(models.DjmdGenre).filter_by(Name=name)
         if query.count() > 0:
             raise ValueError(f"Genre '{name}' already exists in database")
 
@@ -1877,7 +1798,7 @@ class MasterDatabase:
         >>> content.LabelID = label.ID
         """
         # Check if label already exists
-        query = self.query(models.DjmdLabel).filter_by(Name=name)
+        query = self.session.query(models.DjmdLabel).filter_by(Name=name)
         if query.count() > 0:
             raise ValueError(f"Label '{name}' already exists in database")
 
@@ -1920,7 +1841,7 @@ class MasterDatabase:
         """
         path = Path(path)
         path_string = str(path)
-        query = self.query(models.DjmdContent).filter_by(FolderPath=path_string)
+        query = self.session.query(models.DjmdContent).filter_by(FolderPath=path_string)
         if query.count() > 0:
             raise ValueError(f"Track with path '{path}' already exists in database")
 
@@ -1994,7 +1915,7 @@ class MasterDatabase:
         """
         cont: DjmdContent
         if isinstance(content, (int, str)):
-            cont = self.get_content(ID=content)
+            cont = self.get_content(ID=content).one()
         else:
             cont = content
 
@@ -2143,7 +2064,7 @@ class MasterDatabase:
         """
         cont: DjmdContent
         if isinstance(content, (int, str)):
-            cont = self.get_content(ID=content)
+            cont = self.get_content(ID=content).one()
         else:
             cont = content
 
@@ -2243,7 +2164,7 @@ class MasterDatabase:
         """
         cont: DjmdContent
         if isinstance(content, (int, str)):
-            cont = self.get_content(ID=content)
+            cont = self.get_content(ID=content).one()
         else:
             cont = content
 
@@ -2276,7 +2197,7 @@ class MasterDatabase:
             table = getattr(models, table_name)
             columns = table.columns()
             table_data = list()
-            for row in self.query(table).all():
+            for row in self.session.query(table).all():
                 table_data.append({column: row[column] for column in columns})
             data[table_name] = table_data
         return data
@@ -2346,7 +2267,7 @@ class MasterDatabase:
 
 
 class Rekordbox6Database(MasterDatabase):
-    def __init__(self, path: PathLike = None, db_dir: PathLike = "", key: str = "", unlock: bool = True) -> None:
+    def __init__(self, path: PathLike | None = None, db_dir: PathLike = "", key: str = "", unlock: bool = True) -> None:
         warn_deprecated(
             "pyrekordbox.db6.Rekordbox6Database",
             "pyrekordbox.masterdb.MasterDatabase",
